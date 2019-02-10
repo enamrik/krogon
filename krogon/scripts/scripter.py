@@ -292,13 +292,15 @@ def _install_kubectl(scp: Scripter):
     if scp.file_system.exists("{cache_dir}/kubectl".format(cache_dir=scp.cache_dir)):
         return E.Success()
 
+    cur_os = 'darwin' if scp.is_macos() else 'linux'
+
     scp.log.info("INSTALLING DEPENDENCY: Installing kubectl...")
     scp.os_run("curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt") \
     | E.then | (lambda kube_version:
                 scp.os_run("curl -L https://storage.googleapis.com/kubernetes-release/release"
-                           "/{kube_version}/bin/darwin/amd64/kubectl > {cache_dir}/kubectl "
+                           "/{kube_version}/bin/{os}/amd64/kubectl > {cache_dir}/kubectl "
                            "&& chmod u+x {cache_dir}/kubectl"
-                           .format(kube_version=kube_version, cache_dir=scp.cache_dir)))
+                           .format(os=cur_os, kube_version=kube_version, cache_dir=scp.cache_dir)))
 
 
 def _install_kubemci(scp: Scripter):
