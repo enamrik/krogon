@@ -53,10 +53,13 @@ def get_clusters(scp: Scripter, by_tag: str):
            | E.then | _parse_cluster_names
 
 
-def install_istio(scp: Scripter, cluster_name: str, istio_version: str, gateway_type: str):
+def install_istio(scp: Scripter, cluster_name: str, istio_version: str, gateway_type: str,
+                  auto_sidecar_injection: bool):
+
     return _setup(scp) \
            | E.then | (lambda _: _gen_kubeconfig(scp, cluster_name)) \
-           | E.then | (lambda _: _install_istio(scp, cluster_name, istio_version, gateway_type)) \
+           | E.then | (lambda _: _install_istio(scp, cluster_name, istio_version, gateway_type,
+                                                auto_sidecar_injection)) \
            | E.then | (lambda _: _install_istio_gateway(scp, cluster_name))
 
 
@@ -229,16 +232,20 @@ def _kubeconfig_file_path(cache_dir: str, cluster_name: str):
         .format(cache_dir=cache_dir, cluster_name=cluster_name)
 
 
-def _install_istio(scp: Scripter, cluster_name: str, istio_version: str, gateway_type: str):
+def _install_istio(scp: Scripter, cluster_name: str, istio_version: str,
+                   gateway_type: str, auto_sidecar_injection: bool):
+
+    sidecar_injection = 'true' if auto_sidecar_injection else 'false'
     kubeconfig_file = _kubeconfig_file_path(scp.cache_dir, cluster_name)
     return _download_istio(scp, istio_version) \
            | E.then | (lambda _: scp.os_run('{scripts_dir}/install-istio.sh {cache_dir} '
-                                            '{istio_version} {kubeconfig_file} {gateway_type}'
+                                            '{istio_version} {kubeconfig_file} {gateway_type} {sidecar_injection}'
                                             .format(scripts_dir=scp.scripts_dir,
                                                     cache_dir=scp.cache_dir,
                                                     kubeconfig_file=kubeconfig_file,
                                                     istio_version=istio_version,
-                                                    gateway_type=gateway_type)))
+                                                    gateway_type=gateway_type,
+                                                    sidecar_injection=sidecar_injection)))
 
 
 def _install_istio_gateway(scp: Scripter, cluster_name: str):

@@ -23,9 +23,15 @@ class K8sClusterDeployment(Deployment):
         self.istio_settings: M.Maybe[dict] = M.Nothing()
         self.vault_settings: M.Maybe[dict] = M.Nothing()
 
-    def with_istio(self, version: str, using_global_load_balancer: bool = False):
+    def with_istio(self,
+                   version: str,
+                   using_global_load_balancer: bool = False,
+                   auto_sidecar_injection: bool = True):
+
         gateway_type = 'NodePort' if using_global_load_balancer else 'LoadBalancer'
-        self.istio_settings = M.Just(dict(version=version, gateway_type=gateway_type))
+        self.istio_settings = M.Just(dict(version=version,
+                                          gateway_type=gateway_type,
+                                          auto_sidecar_injection=auto_sidecar_injection))
         return self
 
     def with_vault(self, vault_address: str, vault_token: str, vault_ca_b64: str):
@@ -63,7 +69,8 @@ def _post_deployment(deployment: K8sClusterDeployment, scripter: scp.Scripter):
                            if_just=lambda settings: scp.install_istio(scripter,
                                                                       deployment.cluster_name,
                                                                       settings['version'],
-                                                                      settings['gateway_type']),
+                                                                      settings['gateway_type'],
+                                                                      settings['auto_sidecar_injection']),
                            if_nothing=lambda: E.Success())
                        ) \
            | E.then | (lambda _:
