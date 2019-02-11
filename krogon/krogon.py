@@ -28,7 +28,7 @@ class Krogon:
 def krogon(config: Config, steps: s.Steps):
     gcloud = gcp.new_gcloud(config.service_account_info)
     file_system = fs.file_system()
-    os_system = os.os()
+    os_system = os.new_os()
     logger = Logger(name='krogon')
 
     return Krogon(logger, os_system, gcloud, file_system).exec(config, steps)

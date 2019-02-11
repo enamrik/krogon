@@ -80,7 +80,7 @@ def kubectl(cluster_name: str, command: str):
 
 def _build_scripter(config: c.Config, logger: Logger):
     file_system = fs.file_system()
-    os_system = krogon_os.os()
+    os_system = krogon_os.new_os()
     return scp.Scripter(config.project_id, config.service_account_info, os_system, file_system, logger)
 
 
