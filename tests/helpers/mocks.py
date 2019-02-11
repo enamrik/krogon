@@ -21,6 +21,12 @@ class Setup:
         if len(self.return_values) == 0:
             raise Exception("SETUP.init: Return values cannot be empty")
 
+    def call_at(self, index):
+        if index <= len(self.calls) - 1:
+            return self.calls[index]
+        else:
+            raise Exception("No call at index {}. Call count is {}".format(index, len(self.calls)))
+
     def __str__(self):
         return "args: {}, kwargs: {}, return_values: {}, strict: {}".format(self.args, self.kwargs, self.return_values, self.strict)
 

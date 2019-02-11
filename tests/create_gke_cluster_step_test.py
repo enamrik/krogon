@@ -48,7 +48,7 @@ def test_will_create_cluster():
                     region=region))
             )
         )
-    template = dp_insert_setup.calls[0]['kwargs']['body']
+    template = dp_insert_setup.call_at(0)['kwargs']['body']
     yaml_template = yaml.load(template['target']['config']['content'])
     expected_template = _make_expected_template()
 
@@ -86,7 +86,7 @@ def test_will_update_cluster():
                     region=region))
             )
         )
-    template = dp_update_setup.calls[0]['kwargs']['body']
+    template = dp_update_setup.call_at(0)['kwargs']['body']
     yaml_template = yaml.load(template['target']['config']['content'])
     expected_template = _make_expected_template()
 
@@ -133,7 +133,7 @@ def test_can_create_cluster_with_istio_addon_without_gclb():
                     region=region).with_istio(istio_version, using_global_load_balancer=False))
             )
         )
-    template = dp_insert_setup.calls[0]['kwargs']['body']
+    template = dp_insert_setup.call_at(0)['kwargs']['body']
     yaml_template = yaml.load(template['target']['config']['content'])
     expected_template = _make_expected_template()
 
@@ -184,7 +184,7 @@ def test_can_create_cluster_with_istio_addon_with_gclb():
                     region=region).with_istio(istio_version, using_global_load_balancer=True))
             )
         )
-    template = dp_insert_setup.calls[0]['kwargs']['body']
+    template = dp_insert_setup.call_at(0)['kwargs']['body']
     yaml_template = yaml.load(template['target']['config']['content'])
     expected_template = _make_expected_template()
 
@@ -237,7 +237,7 @@ def test_can_create_cluster_with_vault_addon():
                                               vault_ca_b64=vault_ca_b64))
             )
         )
-    template = dp_insert_setup.calls[0]['kwargs']['body']
+    template = dp_insert_setup.call_at(0)['kwargs']['body']
     yaml_template = yaml.load(template['target']['config']['content'])
     expected_template = _make_expected_template()
 
