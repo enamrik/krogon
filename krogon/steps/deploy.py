@@ -5,6 +5,7 @@ from krogon.gcp.deployment_manager.deployments.postgres import PostgresDeploymen
 from krogon.logger import Logger
 from krogon.config import Config
 from krogon.gcp.gcloud import GCloud
+import krogon.gcp.deployment_manager.deployment_manager as dm
 import krogon.scripts.scripter as scp
 import krogon.either as E
 
@@ -22,12 +23,12 @@ class DeploymentManagerStep(Step):
 
         if type(self.deployment) == K8sClusterDeployment:
             cur_deployment: K8sClusterDeployment = self.deployment
-            return gcloud.deployment_manager(logger) \
+            return dm.new_deployment_manager(gcloud, logger) \
                    | E.then | (lambda d_manager: cur_deployment.run(config, scripter, d_manager))
 
         if type(self.deployment) == PostgresDeployment:
             cur_deployment: PostgresDeployment = self.deployment
-            return gcloud.deployment_manager(logger) \
+            return dm.new_deployment_manager(gcloud, logger) \
                    | E.then | (lambda d_manager: cur_deployment.run(config, d_manager))
 
         return E.Failure("Unsupported deployment type: {}".format(self.deployment))

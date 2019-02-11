@@ -21,7 +21,7 @@ def delete_deployment(name: str):
     config = _build_config()
     gcloud = gcp.new_gcloud(config.service_account_info)
 
-    gcloud.deployment_manager(logger) \
+    dm.new_deployment_manager(gcloud, logger) \
         | E.then | (lambda d_manager: dm.delete(d_manager, config.project_id, name)) \
         | E.on | dict(success=lambda _: logger.info('DONE'),
                       failure=lambda e: logger.error('FAILED: {}'.format(e)))

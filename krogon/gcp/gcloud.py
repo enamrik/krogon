@@ -1,9 +1,7 @@
 from typing import Callable, Any
 from google.oauth2 import service_account
 from apiclient.discovery import build
-from krogon.logger import Logger
 import krogon.either as E
-from krogon.gcp.deployment_manager.deployment_manager import DeploymentManager
 
 
 class GCloud:
@@ -13,9 +11,9 @@ class GCloud:
         self.init_client = init_client
         self.service_account_info = service_account_info
 
-    def deployment_manager(self, logger: Logger):
-        return self.init_client('deploymentmanager', 'v2beta', self.service_account_info) \
-         | E.then | (lambda client: DeploymentManager(client, logger))
+
+def create_api(gcloud: GCloud, name: str, version: str):
+    return gcloud.init_client(name, version, gcloud.service_account_info)
 
 
 def new_gcloud(service_account_info: dict):

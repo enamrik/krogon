@@ -8,34 +8,32 @@ import krogon.either as E
 
 class MockGCloud:
     def __init__(self):
-        gcloud = Mock(spec=GCloud)
 
-        deployments = Mock(name='gcloud.deployment_manager.client.deployments')
+        deployments = Mock(name='gcloud.client.deployments')
 
         status = {'fingerprint': 'someFingerprint', 'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'get'}}
-        self.deployments_get = deployments.get = Mock(name='gcloud.deployment_manager.client.deployments.get')
+        self.deployments_get = deployments.get = Mock(name='gcloud.client.deployments.get')
         self.mock_deployment_method(self.deployments_get, kwargs=None, exec_returns=[status])
 
         status = {'fingerprint': 'someFingerprint', 'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'delete'}}
-        self.deployments_delete = deployments.delete = Mock(name='gcloud.deployment_manager.client.deployments.delete')
+        self.deployments_delete = deployments.delete = Mock(name='gcloud.client.deployments.delete')
         self.mock_deployment_method(self.deployments_delete, kwargs=None, exec_returns=[status])
 
         status = {'fingerprint': 'someFingerprint', 'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'update'}}
-        self.deployments_update = deployments.update = Mock(name='gcloud.deployment_manager.client.deployments.update')
+        self.deployments_update = deployments.update = Mock(name='gcloud.client.deployments.update')
         self.mock_deployment_method(self.deployments_update, kwargs=None, exec_returns=[status])
 
         status = {'fingerprint': 'someFingerprint', 'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}
-        self.deployments_insert = deployments.insert = Mock(name='gcloud.deployment_manager.client.deployments.insert')
+        self.deployments_insert = deployments.insert = Mock(name='gcloud.client.deployments.insert')
         self.mock_deployment_method(self.deployments_insert, kwargs=None, exec_returns=[status])
 
         client = Mock(name='gcloud.deployment_manager.client')
-        client.deployments = Mock(name='gcloud.deployment_manager.client.deployments',
-                                       return_value=deployments)
+        client.deployments = Mock(name='gcloud.client.deployments', return_value=deployments)
 
-        gcloud.deployment_manager = Mock(name='gcloud.deployment_manager',
-                                              return_value=E.Success(DeploymentManager(client, Logger(name='test'))))
+        init_client = Mock(name='init_client')
+        MockSetup.mock(init_client, [Setup(return_values=[E.Success(client)])])
 
-        self.gcloud = gcloud
+        self.gcloud = GCloud(service_account_info={}, init_client=init_client)
 
     def mock_deployment_method(self, mock_dp_method, kwargs, exec_returns):
         http_client = Mock()
