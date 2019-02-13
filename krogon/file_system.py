@@ -14,6 +14,15 @@ class FileSystem:
             self.write(file_path, contents)
             return runner(file_path)
 
+    def path_rel_to_app_dir(self, file_path: str) -> str:
+        return self.path_rel_to_file(file_path, __file__)
+
+    def path_rel_to_file(self, file_path: str, file_name: str) -> str:
+        return os.path.dirname(os.path.abspath(file_name))+'/'+file_path
+
+    def path_rel_to_cwd(self, file_path: str):
+        return os.path.abspath(self.cwd()+'/'+file_path)
+
     def read(self, file_path: str) -> str:
         with open(file_path) as f:
             return f.read()
@@ -28,9 +37,6 @@ class FileSystem:
 
     def exists(self, file_path: str) -> bool:
         return os.path.exists(file_path)
-
-    def script_dir(self, file: Any) -> str:
-        return os.path.dirname(os.path.abspath(file))
 
     def mkdir(self, folder: str) -> None:
         os.mkdir(folder)

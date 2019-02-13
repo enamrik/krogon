@@ -2,7 +2,9 @@ from typing import List, Any, Optional
 import krogon.maybe as M
 
 
-def nlist(items: Optional[List[Any]]):
+def nlist(items=None):
+    if items is None:
+        items = []
     return NullableList(items)
 
 
@@ -18,6 +20,9 @@ class NullableList(list):
     def append_if_value(self, value: M.Maybe):
         return value | M.from_maybe | dict(if_just=lambda val: NullableList(self + [val]),
                                            if_nothing=lambda: self)
+
+    def append(self, value: Any):
+        return NullableList(self + [value])
 
     def to_list(self):
         return list(self)

@@ -22,7 +22,10 @@ class Scripter:
         self.log = logger
         self.project = project_id
         self.cache_dir = file_system.cwd() + '/' + self.cache_folder_name()
-        self.scripts_dir = file_system.script_dir(__file__)
+        self.scripts_dir = file_system.path_rel_to_file('./', __file__)
+
+        self.log.info('SCRIPTER: scripts_dir: {}, cache_dir: {}'
+                      .format(self.scripts_dir, self.cache_dir))
 
         if not file_system.exists(self.cache_dir):
             file_system.mkdir(self.cache_dir)
@@ -39,6 +42,12 @@ class Scripter:
 
     def is_macos(self):
         return self.os_system.is_macos()
+
+
+def gcloud(scp: Scripter, command: str):
+    return _setup(scp) \
+           | E.then | (lambda _: scp.os_run("{cache_dir}/google-cloud-sdk/bin/gcloud {cmd}"
+                                            .format(cache_dir=scp.cache_dir, cmd=command)))
 
 
 def get_clusters(scp: Scripter, by_tag: str):

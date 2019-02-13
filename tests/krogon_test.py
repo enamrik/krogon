@@ -12,7 +12,7 @@ import json
 
 
 def test_can_run_steps():
-    config = Config("project1", b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')))
+    config = Config("project1", b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')), '1.0.0')
     file_system = MockFileSystem()
     gcloud = MockGCloud()
     os_system = MockOsSystem()
