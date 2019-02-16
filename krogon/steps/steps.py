@@ -7,6 +7,7 @@ from krogon.steps.step import Step, GenericStep
 from krogon.steps.gclb import GclbStep
 from krogon.steps.deploy import DeploymentManagerStep
 from krogon.steps.k8s import K8sStep
+from krogon.gcp.k8s.kubectl import KubeCtl
 import krogon.scripts.scripter as scp
 import krogon.file_system as fs
 import krogon.gcp.gcloud as gcp
@@ -36,6 +37,7 @@ def exec_steps(cur_steps: Steps,
     def _exec_step(step: Step, _cur_context: StepContext):
         logger.info('STEP: {}'.format(step.name))
         step_logger = logger.add_prefix(step.name)
+        kubectl = KubeCtl(scripter(step_logger))
 
         if type(step) == GclbStep:
             cur_step: GclbStep = step
@@ -51,7 +53,7 @@ def exec_steps(cur_steps: Steps,
 
         elif type(step) == K8sStep:
             cur_step: K8sStep = step
-            return cur_step.exec(scripter(step_logger), file_system)
+            return cur_step.exec(kubectl)
         else:
             return E.Failure("Unsupported step type: {}".format(step))
 

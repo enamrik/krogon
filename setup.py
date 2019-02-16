@@ -23,7 +23,8 @@ setup(
         # https://github.com/pypa/pipenv/issues/1263#issuecomment-362600555
         'google-api-python-client==1.7.7',
         'ruamel.yaml==0.15.87',
-        'click==7.0'
+        'click==7.0',
+        'bcrypt==3.1.6'
     ],
     extras_require={
         'dev': ['pytest', 'dictdiffer==0.7.1']

@@ -1,10 +1,8 @@
 from krogon.gcp.k8s.k8s_deployment import K8sDeployment
-from krogon.file_system import FileSystem
 from typing import List, Any
 from krogon.gcp.k8s.postgres_proxy import PostgresProxy
 from krogon.nullable import nlist, nmap
-from .combine_templates import combine_templates
-import krogon.scripts.scripter as scp
+import krogon.gcp.k8s.kubectl as k
 import krogon.either as E
 import krogon.maybe as M
 
@@ -49,19 +47,14 @@ class K8sMicroServiceDeployment(K8sDeployment):
         self.environment_vars = self.environment_vars + secret_vars
         return self
 
-    def exec(self, cluster_tag: str, scripter: scp.Scripter, fs: FileSystem) -> E.Either[Any, Any]:
+    def exec(self, kubectl: k.KubeCtl, cluster_tag: str) -> E.Either[Any, Any]:
         templates = _get_templates(self.name, self.image, self.version, self.port,
                                    self.environment_vars,
-                                   _get_postgres_proxy(scripter.project, self.name, self.postgres_proxy_settings),
+                                   _get_postgres_proxy(kubectl.scripter.project, self.name, self.postgres_proxy_settings),
                                    self.gateway_host,
                                    self.command)
 
-        return fs.with_temp_file(
-            contents=combine_templates(templates),
-            filename='template',
-            runner=lambda temp_file: scp.kubectl_all_by_tag(scripter,
-                                                            cluster_tag,
-                                                            'apply -f {}'.format(temp_file)))
+        return k.apply(kubectl, templates, cluster_tag)
 
 
 def _get_templates(name: str, image: str, version: str, port: int, env_vars: List[str],

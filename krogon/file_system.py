@@ -47,6 +47,9 @@ class FileSystem:
     def glob(self, path: str):
         return gb.glob(path)
 
+    def dirname(self, path):
+        return os.path.dirname(path)
+
 
 def file_system():
     return FileSystem()

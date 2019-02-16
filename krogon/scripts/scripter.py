@@ -6,7 +6,6 @@ import krogon.os as os
 from typing import List
 from krogon.either_ext import pipeline
 from krogon.logger import Logger
-from krogon.either_ext import chain
 
 
 class Scripter:
@@ -50,18 +49,6 @@ def gcloud(scp: Scripter, command: str):
                                             .format(cache_dir=scp.cache_dir, cmd=command)))
 
 
-def get_clusters(scp: Scripter, by_tag: str):
-    def _parse_cluster_names(cluster_names: str):
-        names = list(map(lambda c: c.strip().strip(), cluster_names.split('\n')))
-        return list(filter(lambda name: by_tag in name, names))
-
-    return _setup(scp) \
-           | E.then | (lambda _: scp.os_run("{cache_dir}/google-cloud-sdk/bin/gcloud "
-                                            "container clusters list --format=\"value(name)\""
-                                            .format(cache_dir=scp.cache_dir))) \
-           | E.then | _parse_cluster_names
-
-
 def install_istio(scp: Scripter, cluster_name: str, istio_version: str, gateway_type: str,
                   auto_sidecar_injection: bool):
 
@@ -70,34 +57,6 @@ def install_istio(scp: Scripter, cluster_name: str, istio_version: str, gateway_
            | E.then | (lambda _: _install_istio(scp, cluster_name, istio_version, gateway_type,
                                                 auto_sidecar_injection)) \
            | E.then | (lambda _: _install_istio_gateway(scp, cluster_name))
-
-
-def proxy(scp: Scripter, cluster_name: str, port: str):
-    kubeconfig_file = _kubeconfig_file_path(scp.cache_dir, cluster_name)
-    return _setup(scp) \
-           | E.then | (lambda _: _gen_kubeconfig(scp, cluster_name)) \
-           | E.then | (lambda _: scp.os_run('{cache_dir}/kubectl proxy --port {port} --kubeconfig {kubeconfig_file}'
-                                            .format(cache_dir=scp.cache_dir,
-                                                    kubeconfig_file=kubeconfig_file,
-                                                    port=port)))
-
-
-def kubectl_all_by_tag(scp: Scripter, cluster_tag: str, command: str):
-    def _exec_in_clusters(cluster_names: List[str]):
-        return chain(cluster_names, lambda cluster_name: kubectl(scp, cluster_name, command))
-
-    return get_clusters(scp, by_tag=cluster_tag) \
-           | E.then | (lambda cluster_names: _exec_in_clusters(cluster_names))
-
-
-def kubectl(scp: Scripter, cluster_name: str, command: str):
-    kubeconfig_file = _kubeconfig_file_path(scp.cache_dir, cluster_name)
-    return _setup(scp) \
-           | E.then | (lambda _: _gen_kubeconfig(scp, cluster_name)) \
-           | E.then | (lambda _: scp.os_run('{cache_dir}/kubectl --kubeconfig {kubeconfig_file} {command}'
-                                            .format(cache_dir=scp.cache_dir,
-                                                    kubeconfig_file=kubeconfig_file,
-                                                    command=command)))
 
 
 def get_access_token(scp: Scripter, cluster_name: str):

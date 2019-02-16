@@ -2,8 +2,8 @@ from krogon.gcp.deployment_manager.deployment_template import DeploymentTemplate
 from krogon.gcp.deployment_manager.deployment import Deployment
 from krogon.gcp.deployment_manager.deployment_manager import DeploymentManager
 from krogon.config import Config
-from krogon.logger import Logger
-from typing import Callable, Any
+from typing import Optional
+from krogon.ci.gocd.deploy_gocd import deploy_gocd
 import krogon.gcp.deployment_manager.deployment_manager as dm
 import krogon.scripts.scripter as scp
 import krogon.either as E
@@ -22,6 +22,7 @@ class K8sClusterDeployment(Deployment):
         self.region = region
         self.istio_settings: M.Maybe[dict] = M.Nothing()
         self.vault_settings: M.Maybe[dict] = M.Nothing()
+        self.gocd_settings: M.Maybe[dict] = M.Nothing()
 
     def with_istio(self,
                    version: str,
@@ -39,6 +40,22 @@ class K8sClusterDeployment(Deployment):
             vault_address=vault_address,
             vault_token=vault_token,
             vault_ca_b64=vault_ca_b64))
+        return self
+
+    def with_gocd(self, root_username: str,
+                  root_password: str,
+                  git_id_rsa_path: str,
+                  git_id_rsa_pub_path: str,
+                  git_host: str,
+                  gateway_host: Optional[str]):
+
+        self.gocd_settings = M.Just(dict(
+            root_username=root_username,
+            root_password=root_password,
+            git_id_rsa_path=git_id_rsa_path,
+            git_id_rsa_pub_path=git_id_rsa_pub_path,
+            git_host=git_host,
+            gateway_host=gateway_host))
         return self
 
     def run(self,
@@ -81,6 +98,19 @@ def _post_deployment(deployment: K8sClusterDeployment, scripter: scp.Scripter):
                                                                         settings['vault_address'],
                                                                         settings['vault_token'],
                                                                         settings['vault_ca_b64']),
+                           if_nothing=lambda: E.Success())
+                       ) \
+           | E.then | (lambda _:
+                       deployment.gocd_settings
+                       | M.from_maybe | dict(
+                           if_just=lambda settings: deploy_gocd(settings['root_username'],
+                                                                settings['root_password'],
+                                                                settings['git_id_rsa_path'],
+                                                                settings['git_id_rsa_pub_path'],
+                                                                settings['git_host'],
+                                                                settings['gateway_host'],
+                                                                deployment.cluster_name,
+                                                                scripter),
                            if_nothing=lambda: E.Success())
                        )
 
