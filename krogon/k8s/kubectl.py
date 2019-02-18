@@ -4,8 +4,11 @@ from krogon.either_ext import chain
 from krogon.config import Config
 from krogon.os import OS
 from krogon.logger import Logger
+from typing import Optional
+from krogon.nullable import nmap
 import krogon.yaml as yaml
 import krogon.either as E
+import krogon.maybe as M
 import krogon.gcp.gcloud as g
 import krogon.file_system as fs
 
@@ -26,14 +29,16 @@ class KubeCtl:
         self.is_macos = os.is_macos
 
 
-def secret(k_ctl: KubeCtl, name: str, key_values: dict, cluster_tag: str):
+def secret(k_ctl: KubeCtl, name: str, key_values: dict, cluster_tag: str, namespace: Optional[str] = None):
     to_base64 = lambda value: b64encode(value.encode('utf-8')).decode('utf-8')
     data = {k: to_base64(v) for k, v in key_values.items()}
 
     secret_template = {
         'apiVersion': 'v1',
         'kind': 'Secret',
-        'metadata': {'name': name},
+        'metadata': nmap({
+            'name': name}).append_if_value(
+            'namespace', M.from_value(namespace)).to_map(),
         'type': 'Opaque',
         'data': data
     }

@@ -1,5 +1,6 @@
 from krogon.nullable import nmap, nlist
 from .https import IstioHttpsConfig, configure_https, HttpsResult
+from krogon.config import Config
 import krogon.k8s.kubectl as k
 import krogon.maybe as M
 import krogon.either as E
@@ -27,6 +28,7 @@ def create_virtual_service_template(service_name: str, host_url: str, port: M.Ma
 
 
 def create_gateway(k_ctl: k.KubeCtl,
+                   config: Config,
                    cluster_name: str,
                    https_config: M.Maybe[IstioHttpsConfig]):
 
@@ -36,7 +38,10 @@ def create_gateway(k_ctl: k.KubeCtl,
         return k.apply(k_ctl, templates, cluster_name)
 
     return https_config \
-           | M.from_maybe | dict(if_just=lambda config: configure_https(config, k_ctl, cluster_name=cluster_name),
+           | M.from_maybe | dict(if_just=lambda c: configure_https(c,
+                                                                   k_ctl,
+                                                                   config,
+                                                                   cluster_name=cluster_name),
                                  if_nothing=lambda: E.Success(HttpsResult.none())) \
            | E.then | (lambda result: _create_gateway(result))
 

@@ -36,12 +36,13 @@ def install_istio(istio: Istio,
                   istio_version: str,
                   gateway_type: str,
                   auto_sidecar_injection: bool,
-                  https_config: Optional[IstioHttpsConfig]):
+                  https_config: M.Maybe[IstioHttpsConfig]):
 
+    # return create_gateway(istio.k_ctl, istio.config, cluster_name, https_config)
     return _setup(istio, istio_version) \
            | E.then | (lambda _: _install_istio(istio, cluster_name, istio_version, gateway_type,
                                                 auto_sidecar_injection)) \
-           | E.then | (lambda _: create_gateway(istio.k_ctl, cluster_name, M.from_value(https_config)))
+           | E.then | (lambda _: create_gateway(istio.k_ctl, istio.config, cluster_name, https_config))
 
 
 def _install_istio(istio: Istio, cluster_name: str, istio_version: str,

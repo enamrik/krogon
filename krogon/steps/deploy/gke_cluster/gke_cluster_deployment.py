@@ -18,17 +18,17 @@ def gke_cluster(name: str, region: str):
 
 
 class HttpsConfig:
-    def __init__(self):
-        self.istio_https_config: M.Maybe[IstioHttpsConfig] = M.Nothing()
+    def __init__(self, istio_https_config: IstioHttpsConfig):
+        self.istio_https_config = istio_https_config
 
-    def with_lets_encrypt(self, email: str, dns_host: str):
-        self.istio_https_config = M.Just(LetsEncryptConfig(email=email, dns_host=dns_host))
-        return self
+    @staticmethod
+    def with_lets_encrypt(email: str, dns_host: str):
+        return HttpsConfig(LetsEncryptConfig(email=email, dns_host=dns_host))
 
-    def with_cert(self, server_certificate_path: str, private_key_path: str):
-        self.istio_https_config = M.Just(HttpsCertConfig(server_certificate_path=server_certificate_path,
-                                                         private_key_path=private_key_path))
-        return self
+    @staticmethod
+    def with_cert(server_certificate_path: str, private_key_path: str):
+        return HttpsConfig(HttpsCertConfig(server_certificate_path=server_certificate_path,
+                                           private_key_path=private_key_path))
 
 
 class GkeClusterDeployment(Deployment):
@@ -51,7 +51,7 @@ class GkeClusterDeployment(Deployment):
         self.istio_settings = M.Just(dict(version=version,
                                           gateway_type=gateway_type,
                                           auto_sidecar_injection=auto_sidecar_injection,
-                                          https=https))
+                                          https=M.from_value(https)))
         return self
 
     def with_vault(self, vault_address: str, vault_token: str, vault_ca_b64: str):
@@ -109,7 +109,8 @@ def _post_deployment(deployment: GkeClusterDeployment,
                                                settings['version'],
                                                settings['gateway_type'],
                                                settings['auto_sidecar_injection'],
-                                               https_config=settings['https']),
+                                               https_config=M.map(settings['https'],
+                                                                  lambda x: x.istio_https_config)),
                            if_nothing=lambda: E.Success())
                        ) \
            | E.then | (lambda _:

@@ -1,4 +1,6 @@
 from typing import Any
+from .lets_encrypt import configure_lets_encrypt
+from krogon.config import Config
 import krogon.either as E
 import krogon.k8s.kubectl as k
 
@@ -29,13 +31,18 @@ class HttpsResult:
 
 def configure_https(istio_https: IstioHttpsConfig,
                     k_ctl: k.KubeCtl,
+                    config: Config,
                     cluster_name: str) -> E.Either[HttpsResult, Any]:
 
     if isinstance(istio_https, HttpsCertConfig):
         return E.Success(HttpsResult(using_https=True))
 
     if isinstance(istio_https, LetsEncryptConfig):
-        return E.Success(HttpsResult(using_https=True))
+        lets_encrypt: LetsEncryptConfig = istio_https
+        return configure_lets_encrypt(k_ctl, config, lets_encrypt.email, lets_encrypt.dns_host, cluster_name) \
+        | E.then | (lambda _: HttpsResult(using_https=True))
+
+    return E.Failure("Unsupported {} type: {}".format(IstioHttpsConfig.__name__, istio_https))
 
 
 
