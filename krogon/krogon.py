@@ -7,6 +7,15 @@ import krogon.os as os
 import krogon.either as E
 
 
+def krogon(config: Config, steps: s.Steps):
+    file_system = fs.file_system()
+    os_system = os.new_os()
+    logger = Logger(name='krogon')
+    gcloud = gcp.new_gcloud(config, file_system, os_system, logger)
+
+    return Krogon(logger, os_system, gcloud, file_system).exec(config, steps)
+
+
 class Krogon:
     def __init__(self,
                  logger: Logger,
@@ -23,14 +32,3 @@ class Krogon:
         return s.exec_steps(steps, config, self.logger, self.os_system, self.gcloud, self.file_system) \
                | E.on | dict(success=lambda _: self.logger.info('DONE'),
                              failure=lambda e: self.logger.error('FAILED: {}'.format(e)))
-
-
-def krogon(config: Config, steps: s.Steps):
-    gcloud = gcp.new_gcloud(config.service_account_info)
-    file_system = fs.file_system()
-    os_system = os.new_os()
-    logger = Logger(name='krogon')
-
-    return Krogon(logger, os_system, gcloud, file_system).exec(config, steps)
-
-

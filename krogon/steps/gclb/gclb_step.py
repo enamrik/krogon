@@ -1,6 +1,6 @@
 from typing import List
 from krogon.steps.step import Step
-import krogon.scripts.scripter as scp
+import krogon.kubemci.kubemci as km
 import krogon.either as E
 
 
@@ -14,5 +14,5 @@ class GclbStep(Step):
         self.gclb_name = gclb_name
         self.clusters = clusters
 
-    def exec(self, scripter: scp.Scripter) -> E.Either:
-        return scp.configure_gclb(scripter, self.clusters, self.gclb_name)
+    def exec(self, k_mci: km.KubeMci) -> E.Either:
+        return km.configure_gclb(k_mci, self.clusters, self.gclb_name)

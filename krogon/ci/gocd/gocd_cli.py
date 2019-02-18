@@ -1,12 +1,14 @@
 import krogon.either as E
 import krogon.file_system as fs
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 import click
 import krogon.ci.gocd.agent_image as agent_image
 import krogon.ci.gocd.configure_repo as cr
 import krogon.ci.gocd.encrypt_secret as es
-from krogon.cli.builders import build_config, build_scripter
+import krogon.gcp.gcloud as gcp
+from krogon.os import new_os
 from krogon.logger import Logger
+from krogon.cli.builders import build_config
 
 
 @click.group()
@@ -32,8 +34,9 @@ def configure_repo(app_name: str,
     logger = Logger(name='krogon')
     config = build_config()
     file = fs.file_system()
-    scripter = build_scripter(config, logger)
-    k_ctl = k.KubeCtl(scripter)
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
     cr.configure_repo(k_ctl, file, config.project_id, config.service_account_b64, app_name, git_url,
                       krogon_agent_name, krogon_file, username, password, cluster_name) \
@@ -49,8 +52,10 @@ def configure_repo(app_name: str,
 def encrypt_secret(plain_text: str, username: str, password: str, cluster_name: str):
     logger = Logger(name='krogon')
     config = build_config()
-    scripter = build_scripter(config, logger)
-    k_ctl = k.KubeCtl(scripter)
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
     es.encrypt_secret(k_ctl, plain_text, username, password, cluster_name) \
     | E.on | dict(success=lambda r: logger.info('DONE: \n\nENCRYPTED TEXT: {}'.format(r)),
@@ -82,8 +87,10 @@ def register_agent_template(agent_name: str, agent_template_path: str, image_url
     file_system = fs.file_system()
     logger = Logger(name='krogon')
     config = build_config()
-    scripter = build_scripter(config, logger)
-    k_ctl = k.KubeCtl(scripter)
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
     agent_image.register_agent_template(k_ctl, file_system, agent_name, agent_template_path,
                                         image_url, username, password, cluster_name) \

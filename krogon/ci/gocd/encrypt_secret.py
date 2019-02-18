@@ -1,4 +1,4 @@
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 import krogon.either as E
 from .gocd_api import request
 import json

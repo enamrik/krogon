@@ -1,5 +1,5 @@
 from krogon.gcp.deployment_manager.deployment_template import DeploymentTemplate
-from krogon.gcp.deployment_manager.deployment import Deployment
+from krogon.steps.deploy.deployment import Deployment
 from krogon.config import Config
 from krogon.gcp.deployment_manager.deployment_manager import DeploymentManager
 import krogon.gcp.deployment_manager.deployment_manager as dm

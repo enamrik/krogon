@@ -1,4 +1,4 @@
-import krogon.gcp.deployment_manager.deployments.postgres as pg
+import krogon.steps.deploy.postgres as p
 
 
 class PostgresProxy:
@@ -10,7 +10,7 @@ class PostgresProxy:
         self.service_account_b64 = service_account_b64
 
     def container(self):
-        instance_connection_name = pg.instance_connection_name(self.project, self.db_name, self.db_region)
+        instance_connection_name = p.instance_connection_name(self.project, self.db_name, self.db_region)
         return {
             'name': 'cloudsql-proxy',
             'image': 'gcr.io/cloudsql-docker/gce-proxy:1.11',

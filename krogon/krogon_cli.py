@@ -1,11 +1,13 @@
 import krogon.either as E
-import krogon.scripts.scripter as scp
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 import krogon.ci.cloud_build.cloudbuild_cli as cloudbuild_cli
 import krogon.ci.gocd.gocd_cli as gocd_cli
 import click
+import krogon.gcp.gcloud as gcp
+from krogon.os import new_os
+from krogon.file_system import FileSystem
 from krogon.logger import Logger
-from krogon.cli.builders import build_config, build_scripter
+from krogon.cli.builders import build_config
 
 
 @click.group()
@@ -22,10 +24,12 @@ cli.add_command(gocd_cli.gocd)
 def proxy(cluster_name: str, port: str):
     logger = Logger(name='krogon')
     config = build_config()
-    scripter = build_scripter(config, logger)
-    kubectl = k.KubeCtl(scripter)
+    os = new_os()
+    file = FileSystem()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
-    k.proxy(kubectl, cluster_name, port) \
+    k.proxy(k_ctl, cluster_name, port) \
         | E.on | dict(success=lambda _: logger.info('DONE'),
                       failure=lambda e: logger.error('FAILED: {}'.format(e)))
 
@@ -35,9 +39,11 @@ def proxy(cluster_name: str, port: str):
 def get_access_token(cluster_name: str):
     logger = Logger(name='krogon')
     config = build_config()
-    scripter = build_scripter(config, logger)
+    os = new_os()
+    file = FileSystem()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
 
-    scp.get_access_token(scripter, cluster_name) \
+    gcp.get_access_token(gcloud, cluster_name) \
         | E.on | dict(success=lambda _: logger.info('DONE'),
                       failure=lambda e: logger.error('FAILED: {}'.format(e)))
 
@@ -48,10 +54,12 @@ def get_access_token(cluster_name: str):
 def kubectl(cluster_name: str, command: str):
     logger = Logger(name='krogon')
     config = build_config()
-    scripter = build_scripter(config, logger)
-    kubectl = k.KubeCtl(scripter)
+    os = new_os()
+    file = FileSystem()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
-    k.kubectl(kubectl, cluster_name, command) \
+    k.kubectl(k_ctl, cluster_name, command) \
         | E.on | dict(success=lambda _: logger.info('DONE'),
                       failure=lambda e: logger.error('FAILED: {}'.format(e)))
 

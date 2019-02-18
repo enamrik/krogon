@@ -13,11 +13,11 @@ class DeploymentStatus:
         else:
             operation = self.status['operation']
             self.complete = operation['status'] == 'DONE'
-            error = operation['error'] if 'error' in operation else None
-            self.has_error = error is not None
+            self.error = operation['error'] if 'error' in operation else None
+            self.has_error = self.error is not None
 
             self.status_message = 'status: {}, progress: {}, op: {}, error: {}' \
-                .format(operation['status'], operation['progress'], operation['operationType'], error)
+                .format(operation['status'], operation['progress'], operation['operationType'], self.error)
 
     def log_status(self, logger: Logger) -> None:
         level = 'error' if self.has_error else 'info'

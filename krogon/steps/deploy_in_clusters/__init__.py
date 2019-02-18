@@ -1,0 +1,7 @@
+import krogon.steps.deploy_in_clusters.k8s_micro_service_deployment as k8s_micro_service_deployment
+import krogon.steps.deploy_in_clusters.k8s_job_deployment as k8s_job_deployment
+import krogon.steps.deploy_in_clusters.k8s_secret_deployment as k8s_secret_deployment
+
+create_micro_service = k8s_micro_service_deployment.create_micro_service
+create_job = k8s_job_deployment.create_job
+create_secret = k8s_secret_deployment.create_secret

@@ -1,20 +1,37 @@
 from krogon.gcp.deployment_manager.deployment_template import DeploymentTemplate
-from krogon.gcp.deployment_manager.deployment import Deployment
+from krogon.steps.deploy.deployment import Deployment
 from krogon.gcp.deployment_manager.deployment_manager import DeploymentManager
+from krogon.istio.https import IstioHttpsConfig, LetsEncryptConfig, HttpsCertConfig
 from krogon.config import Config
 from typing import Optional
-from krogon.ci.gocd.deploy_gocd import deploy_gocd
+from krogon.logger import Logger
 import krogon.gcp.deployment_manager.deployment_manager as dm
-import krogon.scripts.scripter as scp
+import krogon.vault.vault as v
+import krogon.istio.istio as i
+import krogon.ci.gocd.deploy_gocd as cd
 import krogon.either as E
 import krogon.maybe as M
 
 
-def cluster(name: str, region: str):
-    return K8sClusterDeployment(cluster_name=name, region=region)
+def gke_cluster(name: str, region: str):
+    return GkeClusterDeployment(cluster_name=name, region=region)
 
 
-class K8sClusterDeployment(Deployment):
+class HttpsConfig:
+    def __init__(self):
+        self.istio_https_config: M.Maybe[IstioHttpsConfig] = M.Nothing()
+
+    def with_lets_encrypt(self, email: str, dns_host: str):
+        self.istio_https_config = M.Just(LetsEncryptConfig(email=email, dns_host=dns_host))
+        return self
+
+    def with_cert(self, server_certificate_path: str, private_key_path: str):
+        self.istio_https_config = M.Just(HttpsCertConfig(server_certificate_path=server_certificate_path,
+                                                         private_key_path=private_key_path))
+        return self
+
+
+class GkeClusterDeployment(Deployment):
     def __init__(self, cluster_name: str, region: str):
         super().__init__(name=cluster_name + '-cluster-stack')
         self.node_pool_name = cluster_name + '-node-pool'
@@ -27,12 +44,14 @@ class K8sClusterDeployment(Deployment):
     def with_istio(self,
                    version: str,
                    using_global_load_balancer: bool = False,
-                   auto_sidecar_injection: bool = True):
+                   auto_sidecar_injection: bool = True,
+                   https: Optional[HttpsConfig] = None):
 
         gateway_type = 'NodePort' if using_global_load_balancer else 'LoadBalancer'
         self.istio_settings = M.Just(dict(version=version,
                                           gateway_type=gateway_type,
-                                          auto_sidecar_injection=auto_sidecar_injection))
+                                          auto_sidecar_injection=auto_sidecar_injection,
+                                          https=https))
         return self
 
     def with_vault(self, vault_address: str, vault_token: str, vault_ca_b64: str):
@@ -60,62 +79,75 @@ class K8sClusterDeployment(Deployment):
 
     def run(self,
             config: Config,
-            scripter: scp.Scripter,
-            d_manager: DeploymentManager):
+            d_gocd: cd.DeployGoCD,
+            vault: v.Vault,
+            istio: i.Istio,
+            d_manager: DeploymentManager,
+            log: Logger):
 
         return _create_template(self, config.project_id) \
-               | E.then | (lambda template: dm.apply(d_manager, config.project_id, self.name, template)) \
-               | E.then | (lambda _: _post_deployment(self, scripter))
+               | E.then | (lambda template: dm.create_or_update(d_manager,
+                                                                config.project_id,
+                                                                self.name,
+                                                                create_template=template['create'],
+                                                                update_template=template['update'])) \
+               | E.then | (lambda _: _post_deployment(self, d_gocd, vault, istio))
 
 
-def _create_template(deployment: K8sClusterDeployment, project: str):
+def _post_deployment(deployment: GkeClusterDeployment,
+                     d_gocd: cd.DeployGoCD,
+                     vault: v.Vault,
+                     istio: i.Istio):
 
-    resources = _build_deployment_resources(project,
-                                            deployment.cluster_name,
-                                            deployment.node_pool_name,
-                                            deployment.region)
-
-    return E.Success(DeploymentTemplate(resources))
-
-
-def _post_deployment(deployment: K8sClusterDeployment, scripter: scp.Scripter):
     return E.Success() \
            | E.then | (lambda _:
                        deployment.istio_settings
                        | M.from_maybe | dict(
-                           if_just=lambda settings: scp.install_istio(scripter,
-                                                                      deployment.cluster_name,
-                                                                      settings['version'],
-                                                                      settings['gateway_type'],
-                                                                      settings['auto_sidecar_injection']),
+                           if_just=lambda settings:
+                               i.install_istio(istio,
+                                               deployment.cluster_name,
+                                               settings['version'],
+                                               settings['gateway_type'],
+                                               settings['auto_sidecar_injection'],
+                                               https_config=settings['https']),
                            if_nothing=lambda: E.Success())
                        ) \
            | E.then | (lambda _:
                        deployment.vault_settings
                        | M.from_maybe | dict(
-                           if_just=lambda settings: scp.configure_vault(scripter,
-                                                                        deployment.cluster_name,
-                                                                        settings['vault_address'],
-                                                                        settings['vault_token'],
-                                                                        settings['vault_ca_b64']),
+                           if_just=lambda settings: v.configure_vault(vault,
+                                                                      deployment.cluster_name,
+                                                                      settings['vault_address'],
+                                                                      settings['vault_token'],
+                                                                      settings['vault_ca_b64']),
                            if_nothing=lambda: E.Success())
                        ) \
            | E.then | (lambda _:
                        deployment.gocd_settings
                        | M.from_maybe | dict(
-                           if_just=lambda settings: deploy_gocd(settings['root_username'],
-                                                                settings['root_password'],
-                                                                settings['git_id_rsa_path'],
-                                                                settings['git_id_rsa_pub_path'],
-                                                                settings['git_host'],
-                                                                settings['gateway_host'],
-                                                                deployment.cluster_name,
-                                                                scripter),
+                           if_just=lambda settings: cd.deploy_gocd(d_gocd,
+                                                                   settings['root_username'],
+                                                                   settings['root_password'],
+                                                                   settings['git_id_rsa_path'],
+                                                                   settings['git_id_rsa_pub_path'],
+                                                                   settings['git_host'],
+                                                                   settings['gateway_host'],
+                                                                   deployment.cluster_name),
                            if_nothing=lambda: E.Success())
                        )
 
 
-def _build_deployment_resources(project, cluster_name, node_pool_name, region):
+def _create_template(deployment: GkeClusterDeployment, project: str):
+
+    return E.Success(dict(
+        create=DeploymentTemplate(_build_create_deployment_resources(project,
+                                                                     deployment.cluster_name,
+                                                                     deployment.node_pool_name,
+                                                                     deployment.region)),
+        update=DeploymentTemplate.empty()))
+
+
+def _build_create_deployment_resources(project, cluster_name, node_pool_name, region):
     return {
         'resources': [{
             'name': cluster_name,

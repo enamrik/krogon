@@ -1,9 +1,9 @@
 import krogon.either as E
 import krogon.file_system as fs
 import krogon.gcp.gcloud as gcp
-import krogon.gcp.k8s.kubectl as k
 import click
 import krogon.ci.cloud_build.generate_cloudbuild_pipeline as cbp
+from krogon.os import new_os
 from krogon.logger import Logger
 from typing import Optional
 from krogon.cli.builders import build_config
@@ -55,7 +55,9 @@ def generate_pipeline(image_name: str,
     logger = Logger(name='krogon')
     config = build_config()
     file_system = fs.file_system()
-    gcloud = gcp.new_gcloud(config.service_account_info)
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
 
     cbp.generate_cloudbuild_pipeline(config, image_name, krogon_file,
                                      test_type, test_cmd, logger, file_system, gcloud) \

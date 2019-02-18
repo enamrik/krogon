@@ -1,41 +1,67 @@
-#!/usr/bin/env bash
-set -e
+from krogon.encoding import to_base64
+import krogon.either as E
+import krogon.k8s.kubectl as k
 
-CACHE_DIR=$1
-CLUSTER_KUBECONFIG=$2
-VAULT_ADDR=$3
-VAULT_TOKEN=$4
-VAULT_CA_B64=$5
 
-cat > vaultingkube_ns.yaml <<-END
+class Vault:
+    def __init__(self, k_ctl: k.KubeCtl):
+        self.k_ctl = k_ctl
+
+
+def configure_vault(vault: Vault,
+                    cluster_name: str,
+                    vault_address: str,
+                    vault_token: str,
+                    vault_ca_b64: str):
+
+    return k.apply(vault.k_ctl,
+                   [_vaultingkube_namespace_template()],
+                   cluster_tag=cluster_name) \
+           | E.then | (lambda _: k.apply(vault.k_ctl,
+                                         _vaultingkube_templates(vault_address, vault_token, vault_ca_b64),
+                                         cluster_tag=cluster_name))
+
+
+def _vaultingkube_namespace_template():
+    return """
 apiVersion: v1
 kind: Namespace
 metadata:
   name: vaultingkube
-END
-echo "Applying..."
-echo "$(cat vaultingkube_ns.yaml)"
-${CACHE_DIR}/kubectl apply -f vaultingkube_ns.yaml --kubeconfig ${CLUSTER_KUBECONFIG}
-rm ./vaultingkube_ns.yaml || true
+    """
 
-echo "Saving Vault CA as file..."
-VAULT_CA_PATH="${CACHE_DIR}/vault_ca.pem"
-echo "${VAULT_CA_B64}" | base64 --decode > ${VAULT_CA_PATH}
 
-echo "Store vault CA..."
-${CACHE_DIR}/kubectl create secret generic vaultca --namespace=vaultingkube --from-file=ca=${VAULT_CA_PATH}  --kubeconfig ${CLUSTER_KUBECONFIG} || true
-rm -f ${VAULT_CA_PATH}
+def _vaultingkube_templates(vault_address: str, vault_token: str, vault_ca_b64: str):
 
-echo "Store vault token..."
-${CACHE_DIR}/kubectl create secret generic vaulttoken --namespace=vaultingkube --from-literal=token=${VAULT_TOKEN}  --kubeconfig ${CLUSTER_KUBECONFIG} || true
-
-cat > vaultingkube.yaml <<-END
+    return [
+        """
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vaultca
+  namespace: vaultingkube
+type: Opaque
+data:
+  ca: {vault_ca}
+        """.format(vault_ca=vault_ca_b64),
+        """
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vaulttoken
+  namespace: vaultingkube
+type: Opaque
+data:
+  token: {vault_token}
+        """.format(vault_token=to_base64(vault_token)),
+        """
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: vaultingkube
   namespace: vaultingkube
----
+        """,
+        """
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -49,7 +75,8 @@ subjects:
 - kind: ServiceAccount
   name: vaultingkube
   namespace: vaultingkube
----
+        """,
+        """
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
@@ -68,7 +95,8 @@ rules:
   - list
   - patch
   - update
----
+        """,
+        """
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -102,7 +130,7 @@ spec:
             mountPath: "/etc/secret-volume"
         env:
         - name: VAULT_ADDR
-          value: ${VAULT_ADDR}
+          value: {vault_address}
         - name: VAULT_TOKEN
           valueFrom:
             secretKeyRef:
@@ -132,13 +160,8 @@ spec:
       serviceAccountName: vaultingkube
       restartPolicy: Always
       schedulerName: default-scheduler
-      securityContext: {}
+      securityContext: {{}}
       terminationGracePeriodSeconds: 30
----
-END
-echo "Applying..."
-echo "$(cat vaultingkube.yaml)"
-${CACHE_DIR}/kubectl apply -f vaultingkube.yaml --kubeconfig ${CLUSTER_KUBECONFIG}
-rm ./vaultingkube.yaml || true
-
+       """.format(vault_address=vault_address)
+    ]
 

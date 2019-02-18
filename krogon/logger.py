@@ -6,7 +6,7 @@ class Logger:
         self.name = name
 
     def add_prefix(self, suffix):
-        return Logger(self.name + ':' + suffix)
+        return Logger(self.name + ' -> ' + suffix)
 
     def debug(self, message):
         self.log('debug', message)
@@ -20,6 +20,11 @@ class Logger:
     def info(self, message):
         self.log('info', message)
 
+    def step(self, message):
+        self.log('info', "========================================================")
+        self.log('info', 'STEP: {}'.format(message))
+        self.log('info', "========================================================")
+
     def log(self, level, message):
         # logging.log(level, self.name + ':' + message)
-        print(self.name + ', LEVEL: ' + level + ', ' + message)
+        print('LEVEL: [' + level.ljust(5) + '] ' + self.name + ': ' + message)

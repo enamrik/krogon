@@ -1,8 +1,8 @@
-from krogon.gcp.k8s.k8s_deployment import K8sDeployment
+from krogon.steps.deploy_in_clusters.k8s_deployment import K8sDeployment
 from krogon.nullable import nlist, nmap
 from typing import List, Any
-from krogon.gcp.k8s.postgres_proxy import PostgresProxy
-import krogon.gcp.k8s.kubectl as k
+from krogon.steps.deploy_in_clusters.postgres_proxy import PostgresProxy
+import krogon.k8s.kubectl as k
 import krogon.either as E
 import krogon.maybe as M
 

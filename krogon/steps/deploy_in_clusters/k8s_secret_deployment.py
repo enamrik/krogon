@@ -1,6 +1,6 @@
-from krogon.gcp.k8s.k8s_deployment import K8sDeployment
+from krogon.steps.deploy_in_clusters.k8s_deployment import K8sDeployment
 from base64 import b64encode
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 
 
 def create_secret(name: str, data: dict):

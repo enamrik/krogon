@@ -1,5 +1,5 @@
 import krogon.file_system as fs
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 import krogon.yaml as yaml
 import krogon.either as E
 from . import gocd_version

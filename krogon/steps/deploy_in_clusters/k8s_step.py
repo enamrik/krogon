@@ -1,13 +1,11 @@
 from typing import List
 from krogon.steps.step import Step
-from krogon.gcp.k8s.k8s_secret_deployment import K8sSecretDeployment
-from krogon.gcp.k8s.k8s_deployment import K8sDeployment
-from krogon.gcp.k8s.k8s_micro_service_deployment import K8sMicroServiceDeployment
-from krogon.gcp.k8s.k8s_job_deployment import K8sJobDeployment
-from krogon.gcp.k8s.kubectl import KubeCtl
+from krogon.steps.deploy_in_clusters.k8s_secret_deployment import K8sSecretDeployment
+from krogon.steps.deploy_in_clusters.k8s_deployment import K8sDeployment
+from krogon.steps.deploy_in_clusters.k8s_micro_service_deployment import K8sMicroServiceDeployment
+from krogon.steps.deploy_in_clusters.k8s_job_deployment import K8sJobDeployment
+from krogon.k8s.kubectl import KubeCtl
 from krogon.either_ext import chain
-from krogon.file_system import FileSystem
-import krogon.scripts.scripter as scp
 import krogon.either as E
 
 

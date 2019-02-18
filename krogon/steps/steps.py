@@ -4,11 +4,14 @@ from krogon.steps.step_context import StepContext
 from krogon.config import Config
 from krogon.logger import Logger
 from krogon.steps.step import Step, GenericStep
-from krogon.steps.gclb import GclbStep
-from krogon.steps.deploy import DeploymentManagerStep
-from krogon.steps.k8s import K8sStep
-from krogon.gcp.k8s.kubectl import KubeCtl
-import krogon.scripts.scripter as scp
+from krogon.steps.gclb.gclb_step import GclbStep
+from krogon.steps.deploy.deployment_manager_step import DeploymentManagerStep
+from krogon.ci.gocd.deploy_gocd import DeployGoCD
+from krogon.steps.deploy_in_clusters.k8s_step import K8sStep
+from krogon.k8s.kubectl import KubeCtl
+from krogon.vault.vault import Vault
+from krogon.istio.istio import Istio
+import krogon.kubemci.kubemci as km
 import krogon.file_system as fs
 import krogon.gcp.gcloud as gcp
 import krogon.os as os
@@ -31,21 +34,22 @@ def exec_steps(cur_steps: Steps,
                gcloud: gcp.GCloud,
                file_system: fs.FileSystem):
 
-    scripter = lambda step_logger: \
-        scp.Scripter(config.project_id, config.service_account_info, os_system, file_system, step_logger)
-
     def _exec_step(step: Step, _cur_context: StepContext):
-        logger.info('STEP: {}'.format(step.name))
+        logger.step(step.name)
         step_logger = logger.add_prefix(step.name)
-        kubectl = KubeCtl(scripter(step_logger))
+        kubectl = KubeCtl(config, os_system, step_logger, gcloud, file_system)
+        kubemci = km.KubeMci(config, os_system, step_logger, gcloud, file_system)
+        vault = Vault(kubectl)
+        istio = Istio(config, os_system, step_logger, gcloud, file_system, kubectl)
+        d_gocd = DeployGoCD(kubectl, file_system)
 
         if type(step) == GclbStep:
             cur_step: GclbStep = step
-            return cur_step.exec(scripter(step_logger))
+            return cur_step.exec(kubemci)
 
         elif type(step) == DeploymentManagerStep:
             cur_step: DeploymentManagerStep = step
-            return cur_step.exec(scripter(step_logger), gcloud, config, step_logger)
+            return cur_step.exec(d_gocd, vault, istio, gcloud, config, step_logger)
 
         elif type(step) == GenericStep:
             cur_step: GenericStep = step

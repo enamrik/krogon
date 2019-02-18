@@ -31,6 +31,10 @@ class Nothing(Maybe, Generic[A]):
         return "Nothing"
 
 
+def from_value(value) -> Maybe[B]:
+    return Just(value) if value is not None else Nothing()
+
+
 @Infix
 def then(maybe: Maybe[A], func: Callable[[A], Maybe[B]]) -> Maybe[B]:
     if type(maybe) is Just:

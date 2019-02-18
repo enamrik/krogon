@@ -1,7 +1,7 @@
 from krogon.config import config
 from base64 import b64encode
-from krogon.steps.gclb import global_load_balancer
-from tests.helpers import MockOsSystem, MockSetup
+from krogon.steps.gclb.gclb import global_load_balancer
+from tests.helpers import MockOsSystem
 from krogon.steps.steps import steps
 from tests.helpers import mock_krogon_dsl
 import krogon.krogon as k

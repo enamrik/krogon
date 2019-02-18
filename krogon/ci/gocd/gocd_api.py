@@ -1,5 +1,5 @@
 from typing import Optional
-import krogon.gcp.k8s.kubectl as k
+import krogon.k8s.kubectl as k
 import krogon.either as E
 import json
 

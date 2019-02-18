@@ -9,7 +9,7 @@ from tests.helpers.assert_diff import assert_same_dict, same_dict
 from tests.helpers.mocks import MockSetup
 from tests.helpers import mock_krogon_dsl
 import krogon.krogon as k
-import krogon.gcp.deployment_manager.deployments.gke as gke
+import krogon.steps.deploy.gke_cluster.gke as gke
 import krogon.either as E
 import krogon.yaml as yaml
 import tests.helpers.assert_either as e
