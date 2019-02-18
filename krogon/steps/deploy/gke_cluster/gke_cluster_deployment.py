@@ -63,16 +63,16 @@ class GkeClusterDeployment(Deployment):
 
     def with_gocd(self, root_username: str,
                   root_password: str,
-                  git_id_rsa_path: str,
-                  git_id_rsa_pub_path: str,
+                  git_id_rsa_b64: str,
+                  git_id_rsa_pub_b64: str,
                   git_host: str,
                   gateway_host: Optional[str]):
 
         self.gocd_settings = M.Just(dict(
             root_username=root_username,
             root_password=root_password,
-            git_id_rsa_path=git_id_rsa_path,
-            git_id_rsa_pub_path=git_id_rsa_pub_path,
+            git_id_rsa_b64=git_id_rsa_b64,
+            git_id_rsa_pub_b64=git_id_rsa_pub_b64,
             git_host=git_host,
             gateway_host=gateway_host))
         return self
@@ -129,8 +129,8 @@ def _post_deployment(deployment: GkeClusterDeployment,
                            if_just=lambda settings: cd.deploy_gocd(d_gocd,
                                                                    settings['root_username'],
                                                                    settings['root_password'],
-                                                                   settings['git_id_rsa_path'],
-                                                                   settings['git_id_rsa_pub_path'],
+                                                                   settings['git_id_rsa_b64'],
+                                                                   settings['git_id_rsa_pub_b64'],
                                                                    settings['git_host'],
                                                                    settings['gateway_host'],
                                                                    deployment.cluster_name),

@@ -17,8 +17,12 @@ def dict_get_or_none(a_dict: dict, key: Any):
 
 
 class NullableList(list):
-    def append_if_value(self, value: M.Maybe):
+    def append_if_value(self, value: M.Maybe[Any]):
         return value | M.from_maybe | dict(if_just=lambda val: NullableList(self + [val]),
+                                           if_nothing=lambda: self)
+
+    def append_if_list(self, value: M.Maybe[list]):
+        return value | M.from_maybe | dict(if_just=lambda list: NullableList(self + list),
                                            if_nothing=lambda: self)
 
     def append(self, value: Any):

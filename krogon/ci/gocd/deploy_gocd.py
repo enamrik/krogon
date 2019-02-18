@@ -1,6 +1,7 @@
 from typing import Optional
 from .agent_image import generate_agent_pod_template
 from . import gocd_version
+from krogon.encoding import to_base64
 import krogon.k8s.kubectl as k
 import bcrypt
 import krogon.either as E
@@ -22,8 +23,8 @@ def deploy_gocd(
         d_gocd: DeployGoCD,
         root_username: str,
         root_password: str,
-        git_id_rsa_path: str,
-        git_id_rsa_pub_path: str,
+        git_id_rsa_b64: str,
+        git_id_rsa_pub_b64: str,
         git_host: str,
         gateway_host: Optional[str],
         cluster_name: str):
@@ -43,10 +44,11 @@ def deploy_gocd(
                     cluster_tag=cluster_name) \
            | E.then | (lambda _: k.secret(d_gocd.kubectl,
                                           name='gocd-git-ssh',
-                                          key_values={'id_rsa': d_gocd.file.read(git_id_rsa_path),
-                                                      'id_rsa.pub': d_gocd.file.read(git_id_rsa_pub_path),
-                                                      'known_hosts': git_host},
-                                          cluster_tag=cluster_name)) \
+                                          key_values={'id_rsa': git_id_rsa_b64,
+                                                      'id_rsa.pub': git_id_rsa_pub_b64,
+                                                      'known_hosts': to_base64(git_host)},
+                                          cluster_tag=cluster_name,
+                                          already_b64=True)) \
            | E.then | (lambda _: k.apply(d_gocd.kubectl,
                                          [gocd_template_text, gocd_gateway_entry],
                                          cluster_tag=cluster_name))

@@ -11,15 +11,19 @@ from krogon.nullable import nlist
 from typing import Optional
 
 
+def encrypt_value(env_value: str, key_region: str, config: Config, logger: Logger, gcloud: gc.GCloud):
+    return _encrypt_text(env_value, config.project_id, key_region, gcloud, logger)
+
+
 def generate_cloudbuild_pipeline(config: Config,
-                                 image_name: str,
                                  krogon_file_path: str,
+                                 key_region: str,
+                                 image_name: Optional[str],
                                  test_agent_type: Optional[str],
                                  test_agent_cmd: Optional[str],
                                  logger: Logger, file: fs.FileSystem, gcloud: gc.GCloud):
 
     krogon_image_name = _krogon_image(config.project_id, config.krogon_version)
-    key_region = 'us-east1'
     maybe_test_step = _build_test_agent_step(test_agent_type, test_agent_cmd)
 
     return cb.new_cloud_build(gcloud, logger) \
@@ -28,8 +32,12 @@ def generate_cloudbuild_pipeline(config: Config,
            | E.then | (lambda _:
                        _store_key(config.service_account_b64, config.project_id, key_region, gcloud, logger)) \
            | E.then | (lambda secret_entry:
-                       _build_pipeline_template(config.project_id, image_name, krogon_file_path,
-                                                krogon_image_name, maybe_test_step, secret_entry)) \
+                       _build_pipeline_template(config.project_id,
+                                                _build_image_steps(image_name, config.project_id),
+                                                krogon_file_path,
+                                                krogon_image_name,
+                                                maybe_test_step,
+                                                secret_entry)) \
            | E.then | (lambda template:
                        _write_pipeline(template, file))
 
@@ -38,30 +46,20 @@ def _write_pipeline(template: dict, file: fs.FileSystem):
     return file.write(file.cwd() + '/cloudbuild.yaml', yaml.dump(template))
 
 
-def _build_pipeline_template(project_id: str, image_name: str,
+def _build_pipeline_template(project_id: str,
+                             image_steps: M.Maybe[list],
                              krogon_file_path:str,
                              krogon_image_name: str,
                              test_step: M.Maybe[dict],
                              secret_entry: dict):
 
-    image = 'gcr.io/{}/{}:$COMMIT_SHA'.format(project_id, image_name)
-
     return {
         'steps': nlist()
             .append_if_value(test_step)
-            .append({
-                'name': 'gcr.io/cloud-builders/docker',
-                'id': 'Build Image',
-                'args': ['build', '-t', image, '.']
-            })
-            .append({
-                'name': 'gcr.io/cloud-builders/docker',
-                'id': 'Push Image',
-                'args': ['push', image]
-            })
+            .append_if_list(image_steps)
             .append({
                 'name': krogon_image_name,
-                'id': 'Deploy App: {}'.format(image_name),
+                'id': 'Run Krogon',
                 'args': ['python', krogon_file_path],
                 'env': ['GCP_PROJECT={}'.format(project_id),
                         'VERSION=$COMMIT_SHA'],
@@ -72,20 +70,36 @@ def _build_pipeline_template(project_id: str, image_name: str,
     }
 
 
+def _build_image_steps(image_name: Optional[str], project_id: str):
+
+    if image_name is None:
+        return M.Nothing()
+
+    image = 'gcr.io/{}/{}:$COMMIT_SHA'.format(project_id, image_name)
+
+    return M.Just([
+        {
+            'name': 'gcr.io/cloud-builders/docker',
+            'id': 'Build Image',
+            'args': ['build', '-t', image, '.']
+        },
+        {
+            'name': 'gcr.io/cloud-builders/docker',
+            'id': 'Push Image',
+            'args': ['push', image]
+        }
+    ])
+
+
 def _store_key(service_account_b64, project_id: str, region: str, gcloud: gc.GCloud, logger: Logger):
 
-    def _cloud_build_secret(resp):
+    def _cloud_build_secret(resp: EncryptResult):
         return {
-            'kmsKeyName': resp['key_full_name'],
-            'secretEnv': {'GCP_SERVICE_ACCOUNT_B64': resp['ciphertext']}
+            'kmsKeyName': resp.key_name,
+            'secretEnv': {'GCP_SERVICE_ACCOUNT_B64': resp.encrypted_value}
         }
 
-    return kms.new_cloud_kms(gcloud, logger) \
-           | E.then | (lambda c_kms: kms.encrypt(c_kms,
-                                                 key='krogon-user',
-                                                 value=service_account_b64,
-                                                 project_id=project_id,
-                                                 region=region)) \
+    return _encrypt_text(service_account_b64, project_id, region, gcloud, logger) \
            | E.then | (lambda r: _cloud_build_secret(r))
 
 
@@ -145,4 +159,24 @@ def _build_krogon_agent_template(krogon_version: str, krogon_image_name: str):
 
 
 def _krogon_image(project_id: str, version: str):
-    return 'gcr.io/{project_id}/krogon:{version}'.format(project_id=project_id, version=version)
+    return 'gcr.io/{project_id}/cloud-build-krogon:{version}'.format(project_id=project_id, version=version)
+
+
+def _encrypt_text(plain_text: str, project_id: str, region: str, gcloud: gc.GCloud, logger: Logger):
+    return kms.new_cloud_kms(gcloud, logger) \
+           | E.then | (lambda c_kms: kms.encrypt(c_kms,
+                                                 key='krogon-user',
+                                                 value=plain_text,
+                                                 project_id=project_id,
+                                                 region=region)) \
+           | E.then | (lambda resp: EncryptResult(resp['key_full_name'], resp['ciphertext']))
+
+
+class EncryptResult:
+    def __init__(self, key_name: str, encrypted_value: str):
+        self.key_name = key_name
+        self.encrypted_value = encrypted_value
+
+    def __str__(self):
+        return '\nkey: {}\ncipher_text: {}'.format(self.key_name, self.encrypted_value)
+

@@ -14,12 +14,29 @@ def cloudbuild(): pass
 
 
 @cloudbuild.command()
-@click.option('--image-name', required=True, help='name of app image')
+@click.option('--plain-text', required=True, help='text to be encrypted')
+@click.option('--key-region', required=True, help='region where key is stored')
+def encrypt(plain_text: str, key_region: str):
+    logger = Logger(name='krogon')
+    config = build_config()
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+
+    cbp.encrypt_value(plain_text, key_region, config,  logger, gcloud) \
+    | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
+                  failure=lambda e: logger.error('FAILED: {}'.format(e)))
+
+
+@cloudbuild.command()
 @click.option('--krogon-file', required=True, help='name of krogon file')
+@click.option('--key-region', required=True, help='region where key is stored')
+@click.option('--image-name', required=False, help='name of app image')
 @click.option('--test-type', required=False, help='Optional: Test type: node, elixir, python')
 @click.option('--test-cmd', required=False, help='Optional: Test command')
-def generate_pipeline(image_name: str,
-                      krogon_file: str,
+def generate_pipeline(krogon_file: str,
+                      key_region: str,
+                      image_name: Optional[str],
                       test_type: Optional[str],
                       test_cmd: Optional[str]):
     """
@@ -59,7 +76,7 @@ def generate_pipeline(image_name: str,
     os = new_os()
     gcloud = gcp.new_gcloud(config, file, os, logger)
 
-    cbp.generate_cloudbuild_pipeline(config, image_name, krogon_file,
+    cbp.generate_cloudbuild_pipeline(config, krogon_file, key_region, image_name,
                                      test_type, test_cmd, logger, file_system, gcloud) \
     | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
                   failure=lambda e: logger.error('FAILED: {}'.format(e)))

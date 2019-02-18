@@ -29,8 +29,17 @@ class KubeCtl:
         self.is_macos = os.is_macos
 
 
-def secret(k_ctl: KubeCtl, name: str, key_values: dict, cluster_tag: str, namespace: Optional[str] = None):
-    to_base64 = lambda value: b64encode(value.encode('utf-8')).decode('utf-8')
+def secret(k_ctl: KubeCtl,
+           name: str,
+           key_values: dict,
+           cluster_tag: str,
+           namespace: Optional[str] = None,
+           already_b64: Optional[bool] = False):
+
+    to_base64 = lambda value: value \
+        if already_b64 \
+        else b64encode(value.encode('utf-8')).decode('utf-8')
+
     data = {k: to_base64(v) for k, v in key_values.items()}
 
     secret_template = {
