@@ -100,7 +100,7 @@ def _create_cert_template(cluster_host: str):
         'metadata': {'name': 'istio-gateway',
                      'namespace': 'istio-system'},
         'spec': {
-            'secretname': istio_certs_secret,
+            'secretName': istio_certs_secret,
             'issuerRef': {'name': cert_issuer_name},
             'commonName': '*.'+cluster_host,
             'acme': {
