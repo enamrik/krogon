@@ -4,6 +4,7 @@ import krogon.ci.cloud_build.cloudbuild_cli as cloudbuild_cli
 import krogon.ci.gocd.gocd_cli as gocd_cli
 import click
 import krogon.gcp.gcloud as gcp
+from krogon.steps.deploy_in_clusters.k8s_micro_service_deployment import remove_micro_service
 from krogon.os import new_os
 from krogon.file_system import FileSystem
 from krogon.logger import Logger
@@ -16,6 +17,22 @@ def cli(): pass
 
 cli.add_command(cloudbuild_cli.cloudbuild)
 cli.add_command(gocd_cli.gocd)
+
+
+@cli.command()
+@click.option('--service-name', required=True, help='port to forward')
+@click.option('--cluster-name', required=True, help='name of cluster')
+def delete_micro_service(service_name: str, cluster_name: str):
+    logger = Logger(name='krogon')
+    config = build_config()
+    os = new_os()
+    file = FileSystem()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
+
+    remove_micro_service(k_ctl, service_name, cluster_tag=cluster_name) \
+    | E.on | dict(success=lambda _: logger.info('DONE'),
+                  failure=lambda e: logger.error('FAILED: {}'.format(e)))
 
 
 @cli.command()

@@ -54,13 +54,12 @@ def secret(k_ctl: KubeCtl,
     return apply(k_ctl, [secret_template], cluster_tag)
 
 
+def delete(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_tag: str):
+    return _exec_template(k_ctl, 'delete', templates, cluster_tag)
+
+
 def apply(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_tag: str):
-    return k_ctl.file.with_temp_file(
-        contents=_combine_templates(templates),
-        filename='template',
-        runner=lambda temp_file: kubectl_all_by_tag(k_ctl,
-                                                    cluster_tag,
-                                                    'apply -f {}'.format(temp_file)))
+    return _exec_template(k_ctl, 'apply', templates, cluster_tag)
 
 
 def proxy(k_ctl: KubeCtl, cluster_name: str, port: str):
@@ -89,6 +88,15 @@ def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
                                            .format(cache_dir=k_ctl.config.cache_dir,
                                                    kubeconfig_file=kubeconfig_file,
                                                    command=command)))
+
+
+def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cluster_tag: str):
+    return k_ctl.file.with_temp_file(
+        contents=_combine_templates(templates),
+        filename='template',
+        runner=lambda temp_file: kubectl_all_by_tag(k_ctl,
+                                                    cluster_tag,
+                                                    action+' -f {}'.format(temp_file)))
 
 
 def _combine_templates(templates: List[Union[dict, str]]) -> str:

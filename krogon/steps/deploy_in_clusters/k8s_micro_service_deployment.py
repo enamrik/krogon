@@ -3,6 +3,7 @@ from typing import List, Any
 from krogon.config import Config
 from krogon.steps.deploy_in_clusters.postgres_proxy import PostgresProxy
 from krogon.nullable import nlist, nmap
+from krogon.either_ext import pipeline
 import krogon.k8s.kubectl as k
 import krogon.either as E
 import krogon.maybe as M
@@ -56,6 +57,14 @@ class K8sMicroServiceDeployment(K8sDeployment):
                                    self.command)
 
         return k.apply(kubectl, templates, cluster_tag)
+
+
+def remove_micro_service(k_ctl: k.KubeCtl, service_name, cluster_tag: str):
+    delete_deployment = lambda _: k.kubectl(k_ctl, cluster_tag, 'delete deployment '+ _deployment_name(service_name))
+    delete_virtual_service = lambda _: k.kubectl(k_ctl, cluster_tag, 'delete virtualservice '+ _virtual_service_name(service_name))
+    delete_hpa = lambda _: k.kubectl(k_ctl, cluster_tag, 'delete horizontalpodautoscalers '+ _horizontal_pod_autoscaler_name(service_name))
+
+    return pipeline([delete_virtual_service, delete_hpa, delete_deployment])
 
 
 def _get_templates(name: str, image: str, version: str, port: int, env_vars: List[str],

@@ -2,6 +2,7 @@ from krogon.steps.deploy_in_clusters.k8s_deployment import K8sDeployment
 from krogon.nullable import nlist, nmap
 from typing import List, Any
 from krogon.steps.deploy_in_clusters.postgres_proxy import PostgresProxy
+from krogon.config import Config
 import krogon.k8s.kubectl as k
 import krogon.either as E
 import krogon.maybe as M
@@ -40,10 +41,10 @@ class K8sJobDeployment(K8sDeployment):
         self.environment_vars = self.environment_vars + secret_vars
         return self
 
-    def exec(self, kubectl: k.KubeCtl, cluster_tag: str) -> E.Either[Any, Any]:
+    def exec(self, kubectl: k.KubeCtl, config: Config, cluster_tag: str) -> E.Either[Any, Any]:
         templates = _get_templates(self.name, self.image, self.version,
                                    self.environment_vars,
-                                   _get_postgres_proxy(kubectl.scripter.project, self.name, self.postgres_proxy_settings),
+                                   _get_postgres_proxy(config.project_id, self.name, self.postgres_proxy_settings),
                                    self.command)
 
         return k.apply(kubectl, templates, cluster_tag)

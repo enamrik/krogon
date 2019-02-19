@@ -41,7 +41,7 @@ def _exec_in_clusters(cluster_tag: str,
 
         if type(deployment) == K8sJobDeployment:
             cur_deployment: K8sJobDeployment = deployment
-            return cur_deployment.exec(kubectl, cluster_tag)
+            return cur_deployment.exec(kubectl, config, cluster_tag)
 
         return E.Failure("Unsupported deployment type: {}".format(type(deployment)))
 
