@@ -91,6 +91,7 @@ def get_clusters(gcloud: GCloud, by_tag: str):
 
 def _configure_auth(gcloud: GCloud):
     return _install_google_cloud_sdk(gcloud) \
+           | E.then | (lambda _: _install_kubectl(gcloud)) \
            | E.then | (lambda _: _write_service_account_file(gcloud))
 
 
@@ -116,6 +117,22 @@ def _write_service_account_file(gcloud: GCloud):
 def _kubeconfig_file_path(cache_dir: str, cluster_name: str):
     return '{cache_dir}/{cluster_name}-kubeconfig.yaml' \
         .format(cache_dir=cache_dir, cluster_name=cluster_name)
+
+
+def _install_kubectl(gcloud: GCloud):
+    if gcloud.file.exists("{cache_dir}/kubectl".format(cache_dir=gcloud.config.cache_dir)):
+        return E.Success()
+
+    cur_os = 'darwin' if gcloud.is_macos() else 'linux'
+
+    gcloud.log.info("INSTALLING DEPENDENCY: Installing kubectl...")
+    gcloud.run("curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt") \
+    | E.then | (lambda kube_version:
+                gcloud.run("curl -L https://storage.googleapis.com/kubernetes-release/release"
+                          "/{kube_version}/bin/{os}/amd64/kubectl > {cache_dir}/kubectl "
+                          "&& chmod u+x {cache_dir}/kubectl"
+                          .format(os=cur_os, kube_version=kube_version, cache_dir=gcloud.config.cache_dir)))
+
 
 
 def _install_google_cloud_sdk(gcloud: GCloud):

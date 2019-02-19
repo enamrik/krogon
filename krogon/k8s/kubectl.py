@@ -110,22 +110,6 @@ def _combine_templates(templates: List[Union[dict, str]]) -> str:
 
 
 def _setup(k_ctl: KubeCtl, cluster_name: str):
-    return g.gen_kubeconfig(k_ctl.gcloud, cluster_name) \
-           | E.then | (lambda _: _install_kubectl(k_ctl))
-
-
-def _install_kubectl(k_ctl: KubeCtl):
-    if k_ctl.file.exists("{cache_dir}/kubectl".format(cache_dir=k_ctl.config.cache_dir)):
-        return E.Success()
-
-    cur_os = 'darwin' if k_ctl.is_macos() else 'linux'
-
-    k_ctl.log.info("INSTALLING DEPENDENCY: Installing kubectl...")
-    k_ctl.run("curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt") \
-    | E.then | (lambda kube_version:
-                k_ctl.run("curl -L https://storage.googleapis.com/kubernetes-release/release"
-                          "/{kube_version}/bin/{os}/amd64/kubectl > {cache_dir}/kubectl "
-                          "&& chmod u+x {cache_dir}/kubectl"
-                          .format(os=cur_os, kube_version=kube_version, cache_dir=k_ctl.config.cache_dir)))
+    return g.gen_kubeconfig(k_ctl.gcloud, cluster_name)
 
 

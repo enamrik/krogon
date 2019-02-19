@@ -31,4 +31,5 @@ class Krogon:
     def exec(self, config: Config, steps: s.Steps):
         return s.exec_steps(steps, config, self.logger, self.os_system, self.gcloud, self.file_system) \
                | E.on | dict(success=lambda _: self.logger.info('DONE'),
-                             failure=lambda e: self.logger.error('FAILED: {}'.format(e)))
+                             failure=lambda e: self.logger.error('FAILED: {}'.format(e))) \
+               | E.on | dict(failure=lambda e: exit(1))
