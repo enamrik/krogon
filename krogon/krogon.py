@@ -11,6 +11,12 @@ def krogon(config: Config, steps: s.Steps):
     file_system = fs.file_system()
     os_system = os.new_os()
     logger = Logger(name='krogon')
+
+    logger.info("KROGON:".format(config.krogon_version))
+    logger.info("version: {}".format(config.krogon_version))
+    logger.info("cache directory: {}".format(config.cache_dir))
+    logger.info("project: {}\n".format(config.project_id))
+
     gcloud = gcp.new_gcloud(config, file_system, os_system, logger)
 
     return Krogon(logger, os_system, gcloud, file_system).exec(config, steps)
