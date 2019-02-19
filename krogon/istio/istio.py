@@ -3,7 +3,6 @@ from krogon.os import OS
 from krogon.logger import Logger
 from .https import IstioHttpsConfig
 from .gateway import create_gateway
-from typing import Optional
 import krogon.k8s.kubectl as k
 import krogon.helm.helm as h
 import krogon.either as E
@@ -38,7 +37,6 @@ def install_istio(istio: Istio,
                   auto_sidecar_injection: bool,
                   https_config: M.Maybe[IstioHttpsConfig]):
 
-    # return create_gateway(istio.k_ctl, istio.config, cluster_name, https_config)
     return _setup(istio, istio_version) \
            | E.then | (lambda _: _install_istio(istio, cluster_name, istio_version, gateway_type,
                                                 auto_sidecar_injection)) \

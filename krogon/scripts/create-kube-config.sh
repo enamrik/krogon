@@ -11,6 +11,8 @@ PROJECT=$5
 
 echo "CREATE-KUBE-CONFIG:  ARGS: cluster: $CLUSTER_NAME, cache_dir: $CACHE_DIR, key_file: $KEY_FILE, project: ${PROJECT}"
 
+export GOOGLE_APPLICATION_CREDENTIALS=${KEY_FILE}
+export PATH=$PATH:${CACHE_DIR}
 ${CACHE_DIR}/google-cloud-sdk/bin/gcloud config set project ${PROJECT}
 ${CACHE_DIR}/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ${KEY_FILE} || exit 1
 

@@ -25,33 +25,41 @@ class KubeMci:
         self.file = file
 
 
-def configure_gclb(k_mci: KubeMci, cluster_names: List[str], global_lb_name: str):
+def configure_gclb(k_mci: KubeMci, cluster_names: List[str], global_lb_name: str, service_port: int):
     return _setup(k_mci) \
            | E.then | (lambda _:  _create_gclb_ip(k_mci, global_lb_name)) \
-           | E.then | (lambda ip: _sync_clusters_with_gclb(k_mci, ip, global_lb_name, cluster_names))
+           | E.then | (lambda ip: _sync_clusters_with_gclb(k_mci, ip, global_lb_name, cluster_names, service_port))
 
 
-def delete_gclb(k_mci: KubeMci, global_lb_name: str):
+def delete_gclb(k_mci: KubeMci, global_lb_name: str, service_port: int):
     return k_mci.run("{scripts_dir}/gclb-ingress.sh delete {cache_dir} "
-                        "{cache_dir}/clusters.yaml {global_lb_name} {project}"
-                        .format(global_lb_name=global_lb_name,
-                                cache_dir=k_mci.config.cache_dir,
-                                scripts_dir=k_mci.config.scripts_dir,
-                                project=k_mci.config.project_id))
+                     "{cache_dir}/clusters.yaml {global_lb_name} {project} {service_port} {key_file}"
+                     .format(global_lb_name=global_lb_name,
+                             cache_dir=k_mci.config.cache_dir,
+                             scripts_dir=k_mci.config.scripts_dir,
+                             project=k_mci.config.project_id,
+                             service_port=service_port,
+                             key_file=k_mci.config.service_account_file))
 
 
-def remove_gclb_cluster(k_mci: KubeMci, cluster_name: str, global_lb_name: str):
+def remove_gclb_cluster(k_mci: KubeMci, cluster_name: str, global_lb_name: str, service_port: int):
     kubeconfig_file = g.kubeconfig_file_path(k_mci.gcloud, cluster_name)
     return k_mci.run("{scripts_dir}/gclb-ingress.sh remove-clusters {cache_dir} "
-                        "{kubeconfig} {global_lb_name} {project}"
-                        .format(global_lb_name=global_lb_name,
-                                scripts_dir=k_mci.config.scripts_dir,
-                                kubeconfig=kubeconfig_file,
-                                cache_dir=k_mci.config.cache_dir,
-                                project=k_mci.config.project_id))
+                     "{kubeconfig} {global_lb_name} {project} {service_port} {key_file}"
+                     .format(global_lb_name=global_lb_name,
+                             scripts_dir=k_mci.config.scripts_dir,
+                             kubeconfig=kubeconfig_file,
+                             cache_dir=k_mci.config.cache_dir,
+                             project=k_mci.config.project_id,
+                             service_port=service_port,
+                             key_file=k_mci.config.service_account_file))
 
 
-def _sync_clusters_with_gclb(k_mci: KubeMci, gclb_ip: str, global_lb_name: str, cluster_names: List[str]):
+def _sync_clusters_with_gclb(k_mci: KubeMci,
+                             gclb_ip: str,
+                             global_lb_name: str,
+                             cluster_names: List[str], service_port: int):
+
     def _extract_kubeconfigs():
         configs = k_mci.file.glob("{cache_dir}/*kubeconfig.yaml"
                                   .format(cache_dir=k_mci.config.cache_dir))
@@ -74,12 +82,14 @@ def _sync_clusters_with_gclb(k_mci: KubeMci, gclb_ip: str, global_lb_name: str, 
                             .format(configs=':'.join(final_configs), cache_dir=k_mci.config.cache_dir)) \
                | E.then | (
                    lambda _: k_mci.run("{scripts_dir}/gclb-ingress.sh create {cache_dir} "
-                                          "{cache_dir}/clusters.yaml {global_lb_name} {project}"
-                                          .format(gclb_ip=gclb_ip,
-                                                  cache_dir=k_mci.config.cache_dir,
-                                                  global_lb_name=global_lb_name,
-                                                  scripts_dir=k_mci.config.scripts_dir,
-                                                  project=k_mci.config.project_id)))
+                                       "{cache_dir}/clusters.yaml {global_lb_name} {project} {service_port} {key_file}"
+                                       .format(gclb_ip=gclb_ip,
+                                               cache_dir=k_mci.config.cache_dir,
+                                               global_lb_name=global_lb_name,
+                                               scripts_dir=k_mci.config.scripts_dir,
+                                               project=k_mci.config.project_id,
+                                               service_port=service_port,
+                                               key_file=k_mci.config.service_account_file)))
 
     return pipeline(list(map(lambda name: lambda _: g.gen_kubeconfig(k_mci.gcloud, name), cluster_names))) \
            | E.then | (lambda _: _extract_kubeconfigs()) \

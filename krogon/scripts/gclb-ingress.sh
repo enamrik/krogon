@@ -7,7 +7,15 @@ CACHE_DIR=$2
 KUBECONFIG=$3
 GLOBAL_LB_NAME=$4
 PROJECT=$5
+SERVICE_PORT=$6
+KEY_FILE=$7
 
+
+echo "Activating account..."
+export GOOGLE_APPLICATION_CREDENTIALS=${KEY_FILE}
+export PATH=$PATH:${CACHE_DIR}
+${CACHE_DIR}/google-cloud-sdk/bin/gcloud config set project ${PROJECT}
+${CACHE_DIR}/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ${KEY_FILE} || exit 1
 
 cat > ${CACHE_DIR}/temp.yaml <<-END
 ---
@@ -23,7 +31,7 @@ spec:
   backend:
     nameSpace: istio-system
     serviceName: istio-ingressgateway
-    servicePort: 80
+    servicePort: ${SERVICE_PORT}
 END
 
 echo "YAML: ${CACHE_DIR}/temp.yaml"
@@ -39,5 +47,5 @@ ${CACHE_DIR}/kubemci ${ACTION} ${GLOBAL_LB_NAME} \
         --gcp-project=${PROJECT} \
         --kubeconfig=${KUBECONFIG}
 
-rm ${CACHE_DIR}/temp.yaml || true
+#rm ${CACHE_DIR}/temp.yaml || true
 
