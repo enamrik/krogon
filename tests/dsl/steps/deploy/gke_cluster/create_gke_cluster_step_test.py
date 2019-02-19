@@ -1,15 +1,15 @@
 from krogon.config import config
 from base64 import b64encode
-from krogon.steps.deploy import deploy
 from krogon.steps.steps import steps
 from tests.helpers.mock_gcloud import create_mock_http_error
 from tests.helpers.mocks import RaiseException
 from unittest.mock import patch
 from tests.helpers.assert_diff import assert_same_dict, same_dict
-from tests.helpers.mocks import MockSetup
-from tests.helpers import mock_krogon_dsl
-import krogon.krogon as k
-import krogon.steps.deploy.gke_cluster.gke as gke
+from tests.helpers.mocks import MockSetup, Setup
+from tests.helpers import mock_krogon_dsl, MockOsSystem
+from krogon import krogon, config, steps
+from krogon.steps import deploy
+from krogon.steps.deploy import gke_cluster
 import krogon.either as E
 import krogon.yaml as yaml
 import tests.helpers.assert_either as e
@@ -41,10 +41,10 @@ def test_will_create_cluster():
                                      body=MockSetup.match(lambda x: _compare_body(x, body))),
                          exec_returns=[{'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}])
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
-                deploy(gke.cluster(
+                deploy(gke_cluster(
                     name=cluster_name,
                     region=region))
             )
@@ -84,19 +84,16 @@ def test_will_update_cluster():
                              'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'get'}
                          }])
 
-        result = k.krogon(
+        krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
-                deploy(gke.cluster(
+                deploy(gke_cluster(
                     name=cluster_name,
                     region=region))
             )
         )
-        template = gcloud.client.deployments().update.setup(0).call_at(0)['kwargs']['body']
-        yaml_template = yaml.load(template['target']['config']['content'])
-        expected_template = _make_expected_template()
-        assert_same_dict(yaml_template, expected_template)
-        e.assert_that(result).succeeded()
+        update: Setup = gcloud.client.deployments().update.setup(0)
+        update.expected_not_to_have_been_called()
 
     mock_krogon_dsl(_run_dsl)
 
@@ -130,17 +127,18 @@ def test_can_create_cluster_with_istio_addon():
                         body=MockSetup.match(lambda x: _compare_body(x, body))),
             exec_returns=[{'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}])
 
-        create_kube_config = os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
+        os_system.mock_clusters_list([cluster_name])
+        os_system.mock_kubectl_apply_temp_file(cluster_name, return_value=E.Success())
+        os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
         download_istio = os_system.mock_download_istio(istio_version, return_value=E.Success())
         install_istio = os_system.mock_install_istio(istio_version, cluster_name, gateway_type,
                                                      auto_sidecar_injection=True, return_value=E.Success())
-        install_istio_gateway = os_system.mock_install_istio_gateway(cluster_name, return_value=E.Success())
 
         with patch('time.sleep', return_value=None):
-            result = k.krogon(
+            result = krogon(
                 config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
                 steps(
-                    deploy(gke.cluster(
+                    deploy(gke_cluster(
                         name=cluster_name,
                         region=region).with_istio(istio_version))
                 )
@@ -149,10 +147,8 @@ def test_can_create_cluster_with_istio_addon():
         yaml_template = yaml.load(template['target']['config']['content'])
         expected_template = _make_expected_template()
 
-        create_kube_config.expected_to_have_been_called(exactly_times=1)
         download_istio.expected_to_have_been_called(exactly_times=1)
         install_istio.expected_to_have_been_called(exactly_times=1)
-        install_istio_gateway.expected_to_have_been_called(exactly_times=1)
         assert_same_dict(yaml_template, expected_template)
         e.assert_that(result).succeeded()
 
@@ -187,17 +183,18 @@ def test_can_create_cluster_with_istio_addon_without_auto_inject_sidecar():
                         body=MockSetup.match(lambda x: _compare_body(x, body))),
             exec_returns=[{'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}])
 
-        create_kube_config = os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
+        os_system.mock_clusters_list([cluster_name])
+        os_system.mock_kubectl_apply_temp_file(cluster_name, return_value=E.Success())
+        os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
         download_istio = os_system.mock_download_istio(istio_version, return_value=E.Success())
         install_istio = os_system.mock_install_istio(istio_version, cluster_name, gateway_type,
                                                      auto_sidecar_injection,
                                                      return_value=E.Success())
-        install_istio_gateway = os_system.mock_install_istio_gateway(cluster_name, return_value=E.Success())
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
-                deploy(gke.cluster(
+                deploy(gke_cluster(
                     name=cluster_name,
                     region=region).with_istio(istio_version,
                                               using_global_load_balancer=True,
@@ -209,10 +206,8 @@ def test_can_create_cluster_with_istio_addon_without_auto_inject_sidecar():
         yaml_template = yaml.load(template['target']['config']['content'])
         expected_template = _make_expected_template()
 
-        create_kube_config.expected_to_have_been_called(exactly_times=1)
         download_istio.expected_to_have_been_called(exactly_times=1)
         install_istio.expected_to_have_been_called(exactly_times=1)
-        install_istio_gateway.expected_to_have_been_called(exactly_times=1)
         assert_same_dict(yaml_template, expected_template)
         e.assert_that(result).succeeded()
 
@@ -244,16 +239,17 @@ def test_can_create_cluster_with_istio_addon_with_gclb():
                                      body=MockSetup.match(lambda x: _compare_body(x, body))),
                          exec_returns=[{'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}])
 
-        create_kube_config = os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
+        os_system.mock_clusters_list([cluster_name])
+        os_system.mock_kubectl_apply_temp_file(cluster_name, return_value=E.Success())
+        os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
         download_istio = os_system.mock_download_istio(istio_version, return_value=E.Success())
         install_istio = os_system.mock_install_istio(istio_version, cluster_name, gateway_type,
                                                      auto_sidecar_injection=True, return_value=E.Success())
-        install_istio_gateway = os_system.mock_install_istio_gateway(cluster_name, return_value=E.Success())
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
-                deploy(gke.cluster(
+                deploy(gke_cluster(
                     name=cluster_name,
                     region=region).with_istio(istio_version, using_global_load_balancer=True))
             )
@@ -263,10 +259,8 @@ def test_can_create_cluster_with_istio_addon_with_gclb():
         yaml_template = yaml.load(template['target']['config']['content'])
         expected_template = _make_expected_template()
 
-        create_kube_config.expected_to_have_been_called(exactly_times=1)
         download_istio.expected_to_have_been_called(exactly_times=1)
         install_istio.expected_to_have_been_called(exactly_times=1)
-        install_istio_gateway.expected_to_have_been_called(exactly_times=1)
         assert_same_dict(yaml_template, expected_template)
         e.assert_that(result).succeeded()
 
@@ -276,7 +270,7 @@ def test_can_create_cluster_with_istio_addon_with_gclb():
 def test_can_create_cluster_with_vault_addon():
     def _run_dsl(args):
         gcloud = args['gcloud']
-        os_system = args['os_system']
+        os_system: MockOsSystem = args['os_system']
         project_id = "project1"
         vault_token = "someVaultToken"
         vault_address = '11.11.11.1'
@@ -299,14 +293,14 @@ def test_can_create_cluster_with_vault_addon():
                                      body=MockSetup.match(lambda x: _compare_body(x, body))),
                          exec_returns=[{'operation': {'status': 'DONE', 'progress': 100, 'operationType': 'insert'}}])
 
-        create_kube_config = os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
-        install_vaultingkube = os_system.mock_install_vaultingkube(
-            cluster_name, vault_address, vault_token, vault_ca_b64, return_value=E.Success())
+        os_system.mock_clusters_list([cluster_name])
+        os_system.mock_kubectl_apply_temp_file(cluster_name, return_value=E.Success())
+        os_system.mock_create_kube_config(cluster_name, return_value=E.Success())
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
-                deploy(gke.cluster(
+                deploy(gke_cluster(
                     name=cluster_name,
                     region=region).with_vault(vault_address=vault_address,
                                               vault_token=vault_token,
@@ -317,8 +311,6 @@ def test_can_create_cluster_with_vault_addon():
         yaml_template = yaml.load(template['target']['config']['content'])
         expected_template = _make_expected_template()
 
-        create_kube_config.expected_to_have_been_called(exactly_times=1)
-        install_vaultingkube.expected_to_have_been_called(exactly_times=1)
         assert_same_dict(yaml_template, expected_template)
         e.assert_that(result).succeeded()
 

@@ -57,7 +57,7 @@ def exec_steps(cur_steps: Steps,
 
         elif type(step) == K8sStep:
             cur_step: K8sStep = step
-            return cur_step.exec(kubectl)
+            return cur_step.exec(kubectl, config)
         else:
             return E.Failure("Unsupported step type: {}".format(step))
 

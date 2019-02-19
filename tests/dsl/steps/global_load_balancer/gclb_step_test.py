@@ -1,10 +1,8 @@
-from krogon.config import config
 from base64 import b64encode
-from krogon.steps.gclb.gclb import global_load_balancer
+from krogon import krogon, config, steps
+from krogon.steps import global_load_balancer
 from tests.helpers import MockOsSystem
-from krogon.steps.steps import steps
 from tests.helpers import mock_krogon_dsl
-import krogon.krogon as k
 import krogon.either as E
 import tests.helpers.assert_either as e
 import json
@@ -29,7 +27,7 @@ def test_can_run_gclb_step():
         flatten_cluster_configs = os_system.mock_flatten_cluster_configs(cluster_configs, return_value=E.Success())
         create_gclb_clusters = os_system.mock_create_gclb_clusters(gclb_name, project_id, return_value=E.Success())
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
                 global_load_balancer(
@@ -67,7 +65,7 @@ def test_wont_create_gclb_if_it_exists():
         flatten_cluster_configs = os_system.mock_flatten_cluster_configs(cluster_configs, return_value=E.Success())
         create_gclb_clusters = os_system.mock_create_gclb_clusters(gclb_name, project_id, return_value=E.Success())
 
-        result = k.krogon(
+        result = krogon(
             config(project_id, b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))),
             steps(
                 global_load_balancer(

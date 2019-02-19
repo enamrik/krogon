@@ -30,14 +30,7 @@ class GCloud:
 
 
 def new_gcloud(config: Config, file: fs.FileSystem, os: OS, log: Logger):
-    def init_client(api: str, version: str, service_acc_info: dict) -> Any:
-        return E.try_catch(lambda: service_account.Credentials.from_service_account_info(service_acc_info)) \
-               | E.then | (lambda credentials: E.try_catch(lambda: build(api,
-                                                                         version,
-                                                                         credentials=credentials,
-                                                                         cache_discovery=False)))
-
-    return GCloud(config, file, os, log, init_client)
+    return GCloud(config, file, os, log, _make_init_client())
 
 
 def create_api(gcloud: GCloud, name: str, version: str):
@@ -91,8 +84,8 @@ def get_clusters(gcloud: GCloud, by_tag: str):
 
     return _configure_auth(gcloud) \
            | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
-                                           "container clusters list --format=\"value(name)\""
-                                           .format(cache_dir=gcloud.config.cache_dir))) \
+                                            "container clusters list --format=\"value(name)\""
+                                            .format(cache_dir=gcloud.config.cache_dir))) \
            | E.then | _parse_cluster_names
 
 
@@ -157,3 +150,13 @@ def _is_kubeconfig_valid(gcloud: GCloud, cluster_name: str, log: Logger):
                                       if_failure=lambda _: False)
 
     return False
+
+
+def _make_init_client() -> Any:
+    def _init_client(api: str, version: str, service_acc_info: dict):
+        return E.try_catch(lambda: service_account.Credentials.from_service_account_info(service_acc_info)) \
+               | E.then | (lambda credentials: E.try_catch(lambda: build(api,
+                                                                         version,
+                                                                         credentials=credentials,
+                                                                         cache_discovery=False)))
+    return _init_client

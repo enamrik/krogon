@@ -1,4 +1,4 @@
-from krogon.krogon_cli import generate_cloudbuild_pipeline
+from krogon.ci.cloud_build.cloudbuild_cli import generate_pipeline
 from base64 import b64encode
 from tests.helpers import MockLogger, MockGCloud, MockFileSystem, MockOsSystem
 from krogon.config import Config
@@ -24,6 +24,7 @@ def test_generate_pipeline():
         runner = args['cli_runner']
         cli_assert = args['cli_assert']
         krogon_version = '0.0.2'
+        key_region = 'us-east1'
         plain_text = b64encode(service_account_b64.encode('utf-8')).decode('utf-8')
         encrypted_text = 'someEncryptedText'
         build_id = 'someBuildId'
@@ -33,8 +34,8 @@ def test_generate_pipeline():
             {'name': 'python',
              'args': ['cp', './krogon/krogon/ci/cloud_build/Dockerfile', './krogon']},
             {'name': 'gcr.io/cloud-builders/docker',
-             'args': ['build', '-t', 'gcr.io/'+project_id+'/krogon:'+krogon_version, './krogon']}],
-            'images': ['gcr.io/'+project_id+'/krogon:'+krogon_version]}
+             'args': ['build', '-t', 'gcr.io/'+project_id+'/cloud-build-krogon:'+krogon_version, './krogon']}],
+            'images': ['gcr.io/'+project_id+'/cloud-build-krogon:'+krogon_version]}
 
         MockSetup.mock_one(file_system.get_mock().read,
                            args=['{}/./VERSION'.format(MockFileSystem.krogon_dir())],
@@ -57,8 +58,9 @@ def test_generate_pipeline():
                              'body': build_body},
                          exec_returns=[{'metadata': {'build': {'id': build_id}}}])
 
-        result = runner.invoke(generate_cloudbuild_pipeline, [
+        result = runner.invoke(generate_pipeline, [
             '--image-name', image_name,
+            '--key-region', key_region,
             '--krogon-file', krogon_file_path])
         cli_assert(result)
 
@@ -70,8 +72,8 @@ def test_generate_pipeline():
                 {'name': 'gcr.io/cloud-builders/docker',
                  'id': 'Push Image',
                  'args': ['push', 'gcr.io/{}/{}:$COMMIT_SHA'.format(project_id, image_name)]},
-                {'name': 'gcr.io/{}/krogon:{}'.format(project_id, krogon_version),
-                 'id': 'Deploy App: '+image_name,
+                {'name': 'gcr.io/{}/cloud-build-krogon:{}'.format(project_id, krogon_version),
+                 'id': 'Run Krogon',
                  'args': ['python', './release.krogon.py'],
                  'env': [
                      'GCP_PROJECT={}'.format(project_id),
@@ -104,6 +106,7 @@ def test_generate_pipeline_with_test_step():
         test_agent_type = 'node'
         test_agent_command = 'npm run unit-test'
         krogon_version = '0.0.2'
+        key_region = 'us-east1'
         plain_text = b64encode(service_account_b64.encode('utf-8')).decode('utf-8')
         encrypted_text = 'someEncryptedText'
         build_id = 'someBuildId'
@@ -113,8 +116,8 @@ def test_generate_pipeline_with_test_step():
             {'name': 'python',
              'args': ['cp', './krogon/krogon/ci/cloud_build/Dockerfile', './krogon']},
             {'name': 'gcr.io/cloud-builders/docker',
-             'args': ['build', '-t', 'gcr.io/'+project_id+'/krogon:'+krogon_version, './krogon']}],
-            'images': ['gcr.io/'+project_id+'/krogon:'+krogon_version]}
+             'args': ['build', '-t', 'gcr.io/'+project_id+'/cloud-build-krogon:'+krogon_version, './krogon']}],
+            'images': ['gcr.io/'+project_id+'/cloud-build-krogon:'+krogon_version]}
 
         MockSetup.mock_one(file_system.get_mock().read,
                            args=['{}/./VERSION'.format(MockFileSystem.krogon_dir())],
@@ -137,9 +140,10 @@ def test_generate_pipeline_with_test_step():
                              'body': build_body},
                          exec_returns=[{'metadata': {'build': {'id': build_id}}}])
 
-        result = runner.invoke(generate_cloudbuild_pipeline, [
-            '--image-name', image_name,
+        result = runner.invoke(generate_pipeline, [
             '--krogon-file', krogon_file_path,
+            '--key-region', key_region,
+            '--image-name', image_name,
             '--test-type', test_agent_type,
             '--test-cmd', test_agent_command])
         cli_assert(result)
@@ -155,8 +159,8 @@ def test_generate_pipeline_with_test_step():
                 {'name': 'gcr.io/cloud-builders/docker',
                  'id': 'Push Image',
                  'args': ['push', 'gcr.io/{}/{}:$COMMIT_SHA'.format(project_id, image_name)]},
-                {'name': 'gcr.io/{}/krogon:{}'.format(project_id, krogon_version),
-                 'id': 'Deploy App: '+image_name,
+                {'name': 'gcr.io/{}/cloud-build-krogon:{}'.format(project_id, krogon_version),
+                 'id': 'Run Krogon',
                  'args': ['python', './release.krogon.py'],
                  'env': [
                      'GCP_PROJECT={}'.format(project_id),

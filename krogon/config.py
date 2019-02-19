@@ -8,7 +8,7 @@ def config(project_id, service_account_b64):
     krogon_version = file_system.read(file_system.path_rel_to_app_dir('./VERSION')).strip()
 
     cache_dir = file_system.cwd() + '/' + Config.cache_folder_name()
-    scripts_dir = file_system.path_rel_to_file('./scripts', __file__)
+    scripts_dir = file_system.path_rel_to_file('./'+Config.scripts_folder_name(), __file__)
 
     if not file_system.exists(cache_dir):
         file_system.mkdir(cache_dir)
@@ -38,3 +38,7 @@ class Config:
     @staticmethod
     def cache_folder_name():
         return '.infra_cache'
+
+    @staticmethod
+    def scripts_folder_name():
+        return 'scripts'

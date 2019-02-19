@@ -13,7 +13,8 @@ class Helm:
                  file: fs.FileSystem):
 
         self.config = config
-        self.os = os
+        self.run = lambda cmd: os.run(cmd, log)
+        self.is_macos = os.is_macos
         self.log = log
         self.file = file
 
@@ -23,9 +24,9 @@ def install_helm(helm: Helm):
         return E.Success()
 
     helm.log.info("INSTALLING DEPENDENCY: Installing helm...")
-    cur_os = 'darwin' if helm.os.is_macos() else 'linux'
-    return helm.os.run("cd {cache_dir} && mkdir helm && cd ./helm "
-                       "&& curl -L https://storage.googleapis.com/kubernetes-helm/"
-                       "helm-v2.12.1-{os}-amd64.tar.gz | tar zx && cp -rf ./{os}-amd64/* . "
-                       "&& rm -r ./{os}-amd64"
-                       .format(cache_dir=helm.config.cache_dir, os=cur_os))
+    cur_os = 'darwin' if helm.is_macos() else 'linux'
+    return helm.run("cd {cache_dir} && mkdir helm && cd ./helm "
+                    "&& curl -L https://storage.googleapis.com/kubernetes-helm/"
+                    "helm-v2.12.1-{os}-amd64.tar.gz | tar zx && cp -rf ./{os}-amd64/* . "
+                    "&& rm -r ./{os}-amd64"
+                    .format(cache_dir=helm.config.cache_dir, os=cur_os))

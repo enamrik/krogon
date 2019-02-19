@@ -67,9 +67,9 @@ def _get_templates(name: str, image: str, version: str, port: int, env_vars: Lis
         {
             'kind': 'Service',
             'apiVersion': 'v1',
-            'metadata': {'name': _service_name(name)},
+            'metadata': {'name': name},
             'spec': {
-                'selector': {'app': name},
+                'selector': {'app': _app_name(name)},
                 'ports': [{'protocol': 'TCP', 'port': 80, 'targetPort': port}]
             }
         },
@@ -78,23 +78,23 @@ def _get_templates(name: str, image: str, version: str, port: int, env_vars: Lis
             'kind': 'Deployment',
             'metadata': {
                 'name': _deployment_name(name),
-                'labels': {'app': name},
+                'labels': {'app': _app_name(name)},
             },
             'spec': {
                 'replicas': 1,
                 'selector': {
                     'matchLabels': {
-                        'app': name
+                        'app': _app_name(name)
                     }
                 },
                 'template': {
                     'metadata': {
                         'annotations': {'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0"},
-                        'labels': {'app': name}},
+                        'labels': {'app': _app_name(name)}},
                     'spec': {
                         'containers': nlist([
                             nmap({
-                                'name': name,
+                                'name': _app_name(name),
                                 'image': image + ':' + version,
                                 'ports': [{'containerPort': port}],
                                 'env': env_vars
@@ -133,7 +133,7 @@ def _get_templates(name: str, image: str, version: str, port: int, env_vars: Lis
             'spec': {
                 'hosts': [host],
                 'gateways': ['cluster-gateway'],
-                'http': [{'route': [{'destination': {'host': _service_name(name)}}]}]
+                'http': [{'route': [{'destination': {'host': name}}]}]
             }
         })).to_list()
 
@@ -150,8 +150,8 @@ def _deployment_name(service_name: str):
     return service_name + '-dp'
 
 
-def _service_name(service_name: str):
-    return service_name + '-svc'
+def _app_name(service_name: str):
+    return service_name + '-app'
 
 
 def _get_postgres_proxy(project: str, service_name: str, postgres_proxy_settings: M.Maybe[dict]):

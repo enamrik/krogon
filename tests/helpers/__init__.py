@@ -21,7 +21,7 @@ def mock_krogon_cli(call_cli: Callable, env: dict):
          patch('krogon.file_system.file_system', return_value=file_system.get_mock()), \
          patch('krogon.os.new_os', return_value=os_system.get_mock()), \
          patch('krogon.logger.Logger', return_value=logger.get_mock()), \
-         patch('krogon.gcp.gcloud.new_gcloud', return_value=gcloud.get_mock()):
+         patch('krogon.gcp.gcloud._make_init_client', return_value=gcloud.get_init_client_mock()):
 
         def _cli_assert(result):
             print("CLI-STDOUT:\n", result.stdout_bytes.decode("utf-8"))
@@ -47,7 +47,7 @@ def mock_krogon_dsl(call_dsl: Callable):
          patch('krogon.file_system.file_system', return_value=file_system.get_mock()), \
          patch('krogon.os.new_os', return_value=os_system.get_mock()), \
          patch('krogon.logger.Logger', return_value=logger.get_mock()), \
-         patch('krogon.gcp.gcloud.new_gcloud', return_value=gcloud.get_mock()):
+         patch('krogon.gcp.gcloud._make_init_client', return_value=gcloud.get_init_client_mock()):
 
         return call_dsl(dict(file_system=file_system, gcloud=gcloud, os_system=os_system, logger=logger))
 

@@ -12,12 +12,11 @@ class MockGCloud:
         self.client = MockGCloud._mock_cloudbuild(self.client)
         self.client = MockGCloud._mock_kms(self.client)
 
-        init_client = Mock(name='init_client')
-        MockSetup.mock(init_client, [Setup(return_values=[E.Success(self.client)])])
-        self.gcloud = GCloud(service_account_info={}, init_client=init_client)
+        self.init_client = Mock(name='init_client')
+        MockSetup.mock(self.init_client, [Setup(return_values=[E.Success(self.client)])])
 
-    def get_mock(self) -> GCloud:
-        return self.gcloud
+    def get_init_client_mock(self) -> GCloud:
+        return self.init_client
 
     def mock_path(self, path: str, args=None, kwargs=None, exec_returns: List[Any] = None):
         MockGCloud._mock_path(self.client, path, args, kwargs, exec_returns)
