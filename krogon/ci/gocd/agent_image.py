@@ -52,7 +52,7 @@ def generate_agent_pod_template(agent_name: str, agent_image: str):
         "kind": "Pod",
         "metadata": {
             "name": agent_name+"-{{ POD_POSTFIX }}",
-            "labels": {"app": "gocd-agent"}
+            "labels": {"app": agent_name}
         },
         "spec": {
             "serviceAccountName": "default",
@@ -60,7 +60,7 @@ def generate_agent_pod_template(agent_name: str, agent_image: str):
                 {"name": "ssh-secrets", "secret": {"secretName": "gocd-git-ssh"}}
             ],
             "containers": [
-                {"name": "gocd-agent-container-{{ CONTAINER_POSTFIX }}",
+                {"name": agent_name+"-{{ CONTAINER_POSTFIX }}",
                  "image": agent_image,
                  "volumeMounts": [
                      {"name": "ssh-secrets",
