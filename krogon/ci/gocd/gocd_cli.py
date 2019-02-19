@@ -3,7 +3,7 @@ import krogon.file_system as fs
 import krogon.k8s.kubectl as k
 import click
 import krogon.ci.gocd.agent_image as agent_image
-import krogon.ci.gocd.configure_repo as cr
+import krogon.ci.gocd.generate_pipeline as gp
 import krogon.ci.gocd.encrypt_secret as es
 import krogon.gcp.gcloud as gcp
 from krogon.os import new_os
@@ -16,20 +16,20 @@ def gocd(): pass
 
 
 @gocd.command()
-@click.option('--app-name', required=True, help='name of app')
+@click.option('--image-name', required=True, help='name of app')
 @click.option('--git-url', required=True, help='Git url of repository')
 @click.option('--krogon-agent-name', required=True, help='GoCD krogon agent\'s elastic profile id')
 @click.option('--krogon-file', required=True, help='Krogon file for deployment stage')
 @click.option('--username', required=True, help='GoCD username')
 @click.option('--password', required=True, help='GoCD password')
 @click.option('--cluster-name', required=True, help='Cluster where GoCD is hosted')
-def configure_repo(app_name: str,
-                   git_url: str,
-                   krogon_agent_name: str,
-                   krogon_file: str,
-                   username: str,
-                   password: str,
-                   cluster_name: str):
+def generate_pipeline(image_name: str,
+                      git_url: str,
+                      krogon_agent_name: str,
+                      krogon_file: str,
+                      username: str,
+                      password: str,
+                      cluster_name: str):
 
     logger = Logger(name='krogon')
     config = build_config()
@@ -38,8 +38,8 @@ def configure_repo(app_name: str,
     gcloud = gcp.new_gcloud(config, file, os, logger)
     k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
-    cr.configure_repo(k_ctl, file, config.project_id, config.service_account_b64, app_name, git_url,
-                      krogon_agent_name, krogon_file, username, password, cluster_name) \
+    gp.generate_pipeline(k_ctl, file, config.project_id, config.service_account_b64, image_name, git_url,
+                         krogon_agent_name, krogon_file, username, password, cluster_name) \
     | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
                   failure=lambda e: logger.error('FAILED: {}'.format(e)))
 

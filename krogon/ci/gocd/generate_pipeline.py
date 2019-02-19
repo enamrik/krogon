@@ -9,32 +9,32 @@ from typing import Optional
 from .encrypt_secret import encrypt_secret
 
 
-def configure_repo(k_ctl: k.KubeCtl,
-                   file: fs.FileSystem,
-                   project_id: str,
-                   service_account_b64: str,
-                   app_name: str,
-                   git_url: str,
-                   krogon_agent_name: str,
-                   krogon_file_path: str,
-                   username: str,
-                   password: str,
-                   cluster_name: str):
+def generate_pipeline(k_ctl: k.KubeCtl,
+                      file: fs.FileSystem,
+                      project_id: str,
+                      service_account_b64: str,
+                      image_name: str,
+                      git_url: str,
+                      krogon_agent_name: str,
+                      krogon_file_path: str,
+                      username: str,
+                      password: str,
+                      cluster_name: str):
 
     return encrypt_secret(k_ctl, service_account_b64, username, password, cluster_name) \
-           | E.then | (lambda secret:  _generate_gocd_template(file, project_id, secret, app_name, git_url,
+           | E.then | (lambda secret:  _generate_gocd_template(file, project_id, secret, image_name, git_url,
                                                                krogon_agent_name, krogon_file_path)) \
-           | E.then | (lambda secret:  _delete_repo_registration(k_ctl, app_name, username, password, cluster_name)) \
-           | E.then | (lambda secret:  _register_repo(k_ctl, app_name, git_url, username, password, cluster_name))
+           | E.then | (lambda secret:  _delete_repo_registration(k_ctl, image_name, username, password, cluster_name)) \
+           | E.then | (lambda secret:  _register_repo(k_ctl, image_name, git_url, username, password, cluster_name))
 
 
 def _delete_repo_registration(k_ctl: k.KubeCtl,
-                              app_name: str,
+                              image_name: str,
                               username: str,
                               password: str,
                               cluster_name: str):
 
-    return request(k_ctl, 'DELETE', '/go/api/admin/config_repos/'+app_name,
+    return request(k_ctl, 'DELETE', '/go/api/admin/config_repos/' + image_name,
                    {'Accept': 'application/vnd.go.cd.v1+json'},
                    None,
                    username, password, cluster_name) \
@@ -42,14 +42,14 @@ def _delete_repo_registration(k_ctl: k.KubeCtl,
 
 
 def _register_repo(k_ctl: k.KubeCtl,
-                   app_name: str,
+                   image_name: str,
                    git_url: str,
                    username: str,
                    password: str,
                    cluster_name: str):
 
     payload = {
-        "id": app_name,
+        "id": image_name,
         "plugin_id": "yaml.config.plugin",
         "material": {
             "type": "git",
@@ -70,13 +70,13 @@ def _register_repo(k_ctl: k.KubeCtl,
 def _generate_gocd_template(file: fs.FileSystem,
                             project_id: str,
                             secure_service_account_b64: str,
-                            app_name: str,
+                            image_name: str,
                             git_url: str,
                             krogon_agent_name: str,
                             krogon_file_path: str):
 
-    image_url = 'gcr.io/{}/{}:${{GO_PIPELINE_LABEL}}'.format(project_id, app_name)
-    gocd_template = _create_gocd_yaml_template(app_name, git_url, image_url,
+    image_url = 'gcr.io/{}/{}:${{GO_PIPELINE_LABEL}}'.format(project_id, image_name)
+    gocd_template = _create_gocd_yaml_template(image_name, git_url, image_url,
                                                krogon_agent_name, krogon_file_path,
                                                project_id, secure_service_account_b64)
 
@@ -84,12 +84,12 @@ def _generate_gocd_template(file: fs.FileSystem,
     return  E.Success()
 
 
-def _create_gocd_yaml_template(app_name: str, git_url: str, image_url: str,
+def _create_gocd_yaml_template(image_name: str, git_url: str, image_url: str,
                                krogon_agent_name: str, krogon_file_path: str,
                                project_id: str, secure_service_account_b64: str):
 
-    build_pipeline = app_name+'-BuildAndPublishArtifact'
-    deploy_pipeline = app_name+'-DeployArtifact'
+    build_pipeline = image_name + '-BuildAndPublishArtifact'
+    deploy_pipeline = image_name + '-DeployArtifact'
 
     return {
         'format_version': '3',
@@ -101,7 +101,7 @@ def _create_gocd_yaml_template(app_name: str, git_url: str, image_url: str,
         'pipelines': {
             build_pipeline:
                 _create_pipeline_template(
-                    group=app_name,
+                    group=image_name,
                     git_url=git_url,
                     stage=_create_stage_with_job(
                         'BuildAndPublish',
@@ -109,7 +109,7 @@ def _create_gocd_yaml_template(app_name: str, git_url: str, image_url: str,
 
             deploy_pipeline:
                 _create_pipeline_template(
-                    group=app_name,
+                    group=image_name,
                     git_url=git_url,
                     stage=_create_stage_with_job(
                         'Deploy',
