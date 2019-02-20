@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-krogon = {editable = true, path = "."}
+krogon = {editable = true,path = "."}
 cachetools = "*"
 
 [dev-packages]
-krogon = {editable = true, extras = ["dev"], path = "."}
+krogon = {editable = true,extras = ["dev"],path = "."}
 
 [requires]
 python_version = "3.7"

@@ -16,14 +16,38 @@ def gocd(): pass
 
 
 @gocd.command()
-@click.option('--image-name', required=True, help='name of app')
+@click.option('--app-name', required=True, help='Name of app. Can also be the name of the git repo')
+@click.option('--git-url', required=True, help='Git url of repository')
+@click.option('--username', required=True, help='GoCD username')
+@click.option('--password', required=True, help='GoCD password')
+@click.option('--cluster-name', required=True, help='Cluster where GoCD is hosted')
+def register_pipeline(app_name: str,
+                      git_url: str,
+                      username: str,
+                      password: str,
+                      cluster_name: str):
+
+    logger = Logger(name='krogon')
+    config = build_config()
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
+
+    gp.register_pipeline(k_ctl, app_name, git_url, username, password, cluster_name) \
+    | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
+                  failure=lambda e: logger.error('FAILED: {}'.format(e)))
+
+
+@gocd.command()
+@click.option('--app-name', required=True, help='Name of app. Can also be the name of the git repo')
 @click.option('--git-url', required=True, help='Git url of repository')
 @click.option('--krogon-agent-name', required=True, help='GoCD krogon agent\'s elastic profile id')
 @click.option('--krogon-file', required=True, help='Krogon file for deployment stage')
 @click.option('--username', required=True, help='GoCD username')
 @click.option('--password', required=True, help='GoCD password')
 @click.option('--cluster-name', required=True, help='Cluster where GoCD is hosted')
-def generate_pipeline(image_name: str,
+def generate_pipeline(app_name: str,
                       git_url: str,
                       krogon_agent_name: str,
                       krogon_file: str,
@@ -38,7 +62,7 @@ def generate_pipeline(image_name: str,
     gcloud = gcp.new_gcloud(config, file, os, logger)
     k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
 
-    gp.generate_pipeline(k_ctl, file, config.project_id, config.service_account_b64, image_name, git_url,
+    gp.generate_pipeline(k_ctl, file, config.project_id, config.service_account_b64, app_name, git_url,
                          krogon_agent_name, krogon_file, username, password, cluster_name) \
     | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
                   failure=lambda e: logger.error('FAILED: {}'.format(e)))
