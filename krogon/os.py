@@ -33,7 +33,7 @@ def new_os():
                 break
 
             line = line.rstrip().decode("utf-8")
-            print(line)
+            log.debug(line)
             output.append(line)
 
         for line in iter(process.stderr.readline, 'b'):
