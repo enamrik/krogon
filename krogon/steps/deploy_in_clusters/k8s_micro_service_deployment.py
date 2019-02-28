@@ -25,6 +25,13 @@ class K8sMicroServiceDeployment(K8sDeployment):
         self.postgres_proxy_settings = M.Nothing()
         self.gateway_host = M.Nothing()
         self.command = M.Nothing()
+        self.min_replicas: int = 1
+        self.max_replicas: int = 10
+
+    def with_replicas(self, min: int, max: int):
+        self.min_replicas = min
+        self.max_replicas = max
+        return self
 
     def with_command(self, command_args: List[str]):
         self.command = M.Just(command_args)
@@ -50,7 +57,12 @@ class K8sMicroServiceDeployment(K8sDeployment):
         return self
 
     def exec(self, kubectl: k.KubeCtl, config: Config, cluster_tag: str) -> E.Either[Any, Any]:
-        templates = _get_templates(self.name, self.image, self.version, self.port,
+        templates = _get_templates(self.name,
+                                   self.image,
+                                   self.version,
+                                   self.port,
+                                   self.min_replicas,
+                                   self.max_replicas,
                                    self.environment_vars,
                                    _get_postgres_proxy(config.project_id, self.name, self.postgres_proxy_settings),
                                    self.gateway_host,
@@ -67,7 +79,13 @@ def remove_micro_service(k_ctl: k.KubeCtl, service_name, cluster_tag: str):
     return pipeline([delete_virtual_service, delete_hpa, delete_deployment])
 
 
-def _get_templates(name: str, image: str, version: str, port: int, env_vars: List[str],
+def _get_templates(name: str,
+                   image: str,
+                   version: str,
+                   port: int,
+                   min_replicas: int,
+                   max_replicas: int,
+                   env_vars: List[str],
                    postgres_proxy: M.Maybe[PostgresProxy],
                    gateway_host: M.Maybe[str],
                    command: M.Maybe[List[str]]) \
@@ -127,8 +145,8 @@ def _get_templates(name: str, image: str, version: str, port: int, env_vars: Lis
                     'kind': 'Deployment',
                     'name': _deployment_name(name)
                 },
-                'minReplicas': 1,
-                'maxReplicas': 10,
+                'minReplicas': min_replicas,
+                'maxReplicas': max_replicas,
                 'targetCPUUtilizationPercentage': 50
             }
         }
