@@ -195,7 +195,7 @@ def _create_krogon_job(krogon_agent_name: str,
         'tasks': [
             {'exec': {
                 'command': 'sh',
-                'arguments': ['VERSION='+version+' python '+krogon_file_path]
+                'arguments': ['-c', 'VERSION='+version+' python '+krogon_file_path]
             }}
         ]
     }
