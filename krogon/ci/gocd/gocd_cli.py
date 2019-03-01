@@ -16,6 +16,25 @@ def gocd(): pass
 
 
 @gocd.command()
+@click.option('--cluster-name', required=True, help='Cluster where GoCD is hosted')
+def create_krogon_secret(cluster_name: str):
+    logger = Logger(name='krogon')
+    config = build_config()
+    file = fs.file_system()
+    os = new_os()
+    gcloud = gcp.new_gcloud(config, file, os, logger)
+    k_ctl = k.KubeCtl(config, os, logger, gcloud, file)
+
+    k.secret(k_ctl,
+             'krogon',
+             dict(GCP_PROJECT=config.project_id,
+                  GCP_SERVICE_ACCOUNT_B64=config.service_account_b64),
+             cluster_tag=cluster_name) \
+    | E.on | dict(success=lambda r: logger.info('DONE: {}'.format(r)),
+                  failure=lambda e: logger.error('FAILED: {}'.format(e)))
+
+
+@gocd.command()
 @click.option('--app-name', required=True, help='Name of app. Can also be the name of the git repo')
 @click.option('--git-url', required=True, help='Git url of repository')
 @click.option('--username', required=True, help='GoCD username')
