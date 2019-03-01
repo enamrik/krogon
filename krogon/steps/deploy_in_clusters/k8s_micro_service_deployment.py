@@ -46,6 +46,10 @@ class K8sMicroServiceDeployment(K8sDeployment):
             db_name=db_name, db_region=db_region, service_account_b64=service_account_b64))
         return self
 
+    def with_environment_variable(self, name: str, value: str):
+        self.environment_vars = self.environment_vars + [{'name': name, 'value': value}]
+        return self
+
     def with_secret(self, name: str, keys: List[str]):
         def _key_to_secret_ref(key):
             return {
