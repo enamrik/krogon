@@ -167,7 +167,8 @@ def _create_build_image_job(image_url: str):
         'tasks': [
             {'exec': {
                 'command': 'sh',
-                'arguments': ['-c', 'docker build -t '+image_url+' .']
+                'arguments': ['-c', 'docker build -t '+image_url+' --build-arg ssh_prv_key="$(cat ~/.ssh/id_rsa)"'
+                                                                 ' --build-arg ssh_pub_key="$(cat ~/.ssh/id_rsa.pub)" .']
             }},
             {'script': 'curl -fsSL "https://github.com/GoogleCloudPlatform/docker-credential-gcr' +
                        '/releases/download/v1.5.0/docker-credential-gcr_linux_amd64-1.5.0.tar.gz"' +
