@@ -21,6 +21,13 @@ class K8sJobDeployment(K8sDeployment):
         self.command = M.Nothing()
         self.postgres_proxy_settings = M.Nothing()
         self.environment_vars = []
+        self.schedule = '* * * * *'
+        self.suspend = True
+
+    def with_schedule(self, schedule: str):
+        self.schedule = schedule
+        self.suspend = False
+        return self
 
     def with_command(self, command: str):
         self.command = M.Just(command)
@@ -42,7 +49,7 @@ class K8sJobDeployment(K8sDeployment):
         return self
 
     def exec(self, kubectl: k.KubeCtl, config: Config, cluster_tag: str) -> E.Either[Any, Any]:
-        templates = _get_templates(self.name, self.image, self.version,
+        templates = _get_templates(self.name, self.image, self.schedule, self.suspend, self.version,
                                    self.environment_vars,
                                    _get_postgres_proxy(config.project_id, self.name, self.postgres_proxy_settings),
                                    self.command)
@@ -50,7 +57,7 @@ class K8sJobDeployment(K8sDeployment):
         return k.apply(kubectl, templates, cluster_tag)
 
 
-def _get_templates(name: str, image: str, version: str, env_vars: List[str],
+def _get_templates(name: str, image: str, schedule: str, suspend: bool, version: str, env_vars: List[str],
                    postgres_proxy: M.Maybe[PostgresProxy],
                    command: M.Maybe[List[str]]) -> List[dict]:
     return nlist([
@@ -59,9 +66,9 @@ def _get_templates(name: str, image: str, version: str, env_vars: List[str],
             'apiVersion': 'batch/v1beta1',
             'metadata': {'name': name},
             'spec': {
-                'suspend': True,
+                'suspend': suspend,
                 'concurrencyPolicy': 'Forbid',
-                'schedule': '* * * * *',
+                'schedule': schedule,
                 'jobTemplate': {'spec': {
                     'template': {
                         'metadata': {
