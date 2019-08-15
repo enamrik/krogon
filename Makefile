@@ -10,4 +10,4 @@ release:
 	./tag_n_push.sh 0.0.1
 
 test:
-	pytest
+	pipenv run pytest

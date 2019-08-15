@@ -93,9 +93,13 @@ class MockOsSystem:
 
     def mock_create_gclb_clusters(self, gclb_name: str, project_id: str, return_value: E.Either[Any, Any]):
         cmd = '{script_dir}/gclb-ingress.sh create {cwd}/{cache_dir_name} ' \
-              '{cwd}/{cache_dir_name}/clusters.yaml {gclb_name} {project_id}' \
+              '{cwd}/{cache_dir_name}/clusters.yaml {gclb_name} {project_id} {service_port} {key_file}' \
             .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(),
-                    script_dir=MockFileSystem.script_dir(), gclb_name=gclb_name, project_id=project_id)
+                    script_dir=MockFileSystem.script_dir(),
+                    gclb_name=gclb_name,
+                    project_id=project_id,
+                    service_port=80,
+                    key_file=MockFileSystem.cwd() + '/' + Config.cache_folder_name() + "/service_account.json")
 
         expectation = Setup(args=[cmd, MockSetup.any()], return_values=[return_value])
         MockSetup.mock(self.os_system.run, [expectation])
