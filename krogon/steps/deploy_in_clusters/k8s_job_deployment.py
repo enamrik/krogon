@@ -24,6 +24,10 @@ class K8sJobDeployment(K8sDeployment):
         self.schedule = '* * * * *'
         self.suspend = True
 
+    def with_environment_variable(self, name: str, value: str):
+        self.environment_vars = self.environment_vars + [{'name': name, 'value': value}]
+        return self
+
     def with_schedule(self, schedule: str):
         self.schedule = schedule
         self.suspend = False
