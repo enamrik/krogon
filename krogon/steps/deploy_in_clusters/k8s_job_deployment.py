@@ -76,7 +76,9 @@ def _get_templates(name: str, image: str, schedule: str, suspend: bool, version:
                 'jobTemplate': {'spec': {
                     'template': {
                         'metadata': {
-                            'annotations': {'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0"},
+                            'annotations': {
+                                'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0",
+                                "sidecar.istio.io/inject": "false"}
                         },
                         'spec': {
                             'containers': nlist([
