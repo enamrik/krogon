@@ -21,6 +21,7 @@ class ExecContext:
         self.os = os
         self.logger = logger
         self.config = config
+        self.templates = []
 
     def os_run(self, command: str) -> E.Either[str, any]:
         return self.os.run(command, self.logger)

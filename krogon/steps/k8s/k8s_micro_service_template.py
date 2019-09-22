@@ -54,17 +54,15 @@ class K8sMicroServiceTemplate:
         self.environment_vars = self.environment_vars + secret_vars
         return self
 
-    def to_string(self, context) -> str:
-        templates = _get_templates(self.name,
-                                   self.image,
-                                   self.app_port,
-                                   self.service_port,
-                                   self.min_replicas,
-                                   self.max_replicas,
-                                   self.environment_vars,
-                                   self.command)
-
-        return y.combine_templates(templates)
+    def run(self) -> List[dict]:
+        return _get_templates(self.name,
+                              self.image,
+                              self.app_port,
+                              self.service_port,
+                              self.min_replicas,
+                              self.max_replicas,
+                              self.environment_vars,
+                              self.command)
 
 
 def _get_templates(name: str,

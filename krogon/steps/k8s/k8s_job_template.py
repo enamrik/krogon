@@ -52,13 +52,11 @@ class K8sJobTemplate:
         self.environment_vars = self.environment_vars + secret_vars
         return self
 
-    def to_string(self, context: ExecContext) -> E.Either[Any, Any]:
-        templates = _get_templates(self.name, self.image,
-                                   self.schedule, self.suspend,
-                                   self.environment_vars,
-                                   self.command)
-
-        return combine_templates(templates)
+    def run(self) -> List[dict]:
+        return _get_templates(self.name, self.image,
+                              self.schedule, self.suspend,
+                              self.environment_vars,
+                              self.command)
 
 
 def _get_templates(name: str, image: str,

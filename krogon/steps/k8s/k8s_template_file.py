@@ -1,3 +1,5 @@
+import krogon.yaml as y
+from typing import List
 from krogon.exec_context import ExecContext
 
 
@@ -9,5 +11,5 @@ class K8sTemplateFile:
     def __init__(self, path):
         self.path = path
 
-    def to_string(self, context: ExecContext) -> str:
-        return context.fs.read(self.path)
+    def run(self, context: ExecContext) -> List[dict]:
+        return y.load_all(context.fs.read(self.path))

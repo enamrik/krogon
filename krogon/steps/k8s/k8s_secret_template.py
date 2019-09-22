@@ -1,4 +1,5 @@
 from base64 import b64encode
+from typing import List
 
 
 def secret(name: str, data: dict, already_b64=False):
@@ -21,5 +22,5 @@ class K8sSecretTemplate:
             'data': {key: to_base64(value) for key, value in secret_data.items()}
         }
 
-    def to_string(self, _):
-        return self.template
+    def run(self) -> List[dict]:
+        return [self.template]
