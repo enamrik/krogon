@@ -1,10 +1,8 @@
 # Krogon
 
-## Requirements
-
-* pipenv
+## Installation
 
 ```bash
-pipenv install -e git+ssh://git@github.com/enamrik/krogon.git#egg=krogon
+pip install -e git+ssh://git@github.com/enamrik/krogon.git#egg=krogon
 ```
 

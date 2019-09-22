@@ -101,7 +101,7 @@ def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cl
 
 def _combine_templates(templates: List[Union[dict, str]]) -> str:
     def _get_template_string(template: Union[dict, str]) -> str:
-        if type(template) == dict:
+        if type(template) is not str:
             template = yaml.dump(template)
         return template
 

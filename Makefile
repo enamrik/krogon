@@ -1,9 +1,8 @@
 
 install_deps:
-	pip install -e .
-	pip install -e .[dev]
+	poetry install
 
 test_only:
-	pytest -v
+	poetry run pytest -v -s
 
 test: install_deps test_only
