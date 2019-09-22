@@ -1,0 +1,52 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: test-service
+spec:
+  selector:
+    app: test-service-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-service-dp
+  labels:
+    app: test-service-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-service-app
+  template:
+    metadata:
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
+      labels:
+        app: test-service-app
+    spec:
+      containers:
+      - name: test-service-app
+        image: test-service:1.0.0
+        ports:
+        - containerPort: 3000
+        env: []
+      volumes: []
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-service-dp
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
