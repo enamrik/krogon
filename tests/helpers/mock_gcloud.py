@@ -2,7 +2,7 @@ from krogon.gcp.gcloud import GCloud
 from python_mock import PyMock, MatchArg
 from unittest.mock import Mock
 from typing import List, Any
-import python_either.either as E
+import krogon.either as E
 
 
 class MockGCloud:

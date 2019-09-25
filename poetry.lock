@@ -231,30 +231,6 @@ version = ">=0.12"
 
 [[package]]
 category = "main"
-description = ""
-name = "python-either"
-optional = false
-python-versions = "^3.7"
-version = "0.0.1"
-
-[package.source]
-reference = "0.0.1"
-type = "git"
-url = "ssh://git@github.com/enamrik/python-either.git"
-[[package]]
-category = "main"
-description = ""
-name = "python-maybe"
-optional = false
-python-versions = "^3.7"
-version = "0.0.1"
-
-[package.source]
-reference = "0.0.1"
-type = "git"
-url = "ssh://git@github.com/enamrik/python-maybe.git"
-[[package]]
-category = "main"
 description = "Pure-Python RSA implementation"
 name = "rsa"
 optional = false
@@ -309,7 +285,7 @@ version = "0.6.0"
 more-itertools = "*"
 
 [metadata]
-content-hash = "1cc18b93513bbf340881650e10903066ca8b29f189096cd476e2d623b9ace2a0"
+content-hash = "50b7610dec39f0ae22a1c62ebf800c124f0a9e1df3d6e33170b01809e7dde103"
 python-versions = "^3.7"
 
 [metadata.hashes]
@@ -335,8 +311,6 @@ pyasn1-modules = ["256c234d85baf315f0e99786d812e68b816e4ee4b35bac982689198ff3df5
 pycparser = ["a988718abfad80b6b157acce7bf130a30876d27603738ac39f140993246b25b3"]
 pyparsing = ["6f98a7b9397e206d78cc01df10131398f1c8b8510a2f4d97d9abd82e1aacdd80", "d9338df12903bbf5d65a0e4e87c2161968b10d2e489652bb47001d82a9b028b4"]
 pytest = ["813b99704b22c7d377bbd756ebe56c35252bb710937b46f207100e843440b3c2", "cc6620b96bc667a0c8d4fa592a8c9c94178a1bd6cc799dbb057dfd9286d31a31"]
-python-either = []
-python-maybe = []
 rsa = ["14ba45700ff1ec9eeb206a2ce76b32814958a98e372006c8fb76ba820211be66", "1a836406405730121ae9823e19c6e806c62bbad73f890574fff50efa4122c487"]
 "ruamel.yaml" = ["08aaaa74ff66565024ecabf9ba2db212712382a21c0458f9a91c623a1fa83b34", "23f2efb872d2ebe3d5428b4f1a8f30cbf59f56e780c4981c155411ee65572673", "38718e69270141c403b5fc539f774ed394568f8a5195b507991f5b690356facb", "44da2be1153e173f90ad8775d4ac4237a3c06cfbb9660c1c1980271621833faa", "4b1674a936cdae9735578d4fd64bcbc6cfbb77a1a8f7037a50c6e3874ba4c9d8", "51d49c870aca850e652e2cd1c9bea9b52b77d13ad52b0556de496c1d264ea65f", "63dc8c6147a4cf77efadf2ae0f34e89e03de79289298bb941b7ae333d5d4020b", "6672798c6b52a976a7b24e20665055852388c83198d88029d3c76e2197ac221a", "6b6025f9b6a557e15e9fdfda4d9af0b57cd8d59ff98e23a0097ab2d7c0540f07", "7b750252e3d1ec5b53d03be508796c04a907060900c7d207280b7456650ebbfc", "847177699994f9c31adf78d1ef1ff8f069ef0241e744a3ee8b30fbdaa914cc1e", "8e42f3067a59e819935a2926e247170ed93c8f0b2ab64526f888e026854db2e4", "922d9e483c05d9000256640026f277fcc0c2e1e9271d05acada8e6cfb4c8b721", "92a8ca79f9173cca29ca9663b49d9c936aefc4c8a76f39318b0218c8f3626438", "ab8eeca4de4decf0d0a42cb6949d354da9fc70a2d9201f0dd55186c599b2e3a5", "bd4b60b649f4a81086f70cd56eff4722018ef36a28094c396f1a53bf450bd579", "fc6471ef15b69e454cca82433ac5f84929d9f3e2d72b9e54b06850b6b7133cc0", "ffc89770339191acbe5a15041950b5ad9daec7d659619b0ed9dad8c9c80c26f3"]
 six = ["3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c", "d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73"]

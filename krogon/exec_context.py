@@ -2,7 +2,7 @@ import krogon.file_system as f
 import krogon.gcp.gcloud as g
 import krogon.k8s.kubectl as k
 import krogon.os as o
-import python_either.either as E
+import krogon.either as E
 from krogon.logger import Logger
 from krogon.config import Config
 

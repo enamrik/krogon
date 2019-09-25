@@ -1,7 +1,7 @@
 from subprocess import Popen, PIPE
 from krogon.logger import Logger
 from typing import Callable, Any
-import python_either.either as E
+import krogon.either as E
 import platform
 import os
 

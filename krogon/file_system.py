@@ -1,5 +1,5 @@
 from typing import Callable, Optional, Any
-import python_either.either as E
+import krogon.either as E
 import os
 import glob as gb
 import tempfile

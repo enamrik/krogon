@@ -8,7 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 import krogon.file_system as fs
 import krogon.yaml as yaml
-import python_either.either as E
+import krogon.either as E
 import json
 
 

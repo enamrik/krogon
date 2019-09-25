@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from python_mock import PyMock, MatchArg
 from krogon.config import Config
 from typing import Any, List
-import python_either.either as E
+import krogon.either as E
 
 
 class MockOsSystem:

@@ -1,5 +1,5 @@
 from typing import Any, Callable, Optional, List
-import python_either.either as E
+import krogon.either as E
 
 
 def pipeline(items: Any,

@@ -1,8 +1,8 @@
 from typing import List
 from krogon.config import Config
 from krogon.exec_context import ExecContext
-from python_either.either_ext import chain
-import python_either.either as E
+from krogon.either_ext import chain
+import krogon.either as E
 import sys
 
 

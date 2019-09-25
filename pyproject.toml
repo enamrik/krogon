@@ -10,8 +10,6 @@ python = "^3.7"
 click = "^7.0"
 bcrypt = "^3.1"
 google-api-python-client = "1.7.7"
-python-maybe = { git = "ssh://git@github.com/enamrik/python-maybe.git", tag = "0.0.1" }
-python-either = {git = "ssh://git@github.com/enamrik/python-either.git", tag = "0.0.1" }
 [tool.poetry.dev-dependencies]
 pytest = "^5.1"
 dictdiffer = "^0.8.0"

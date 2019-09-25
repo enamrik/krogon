@@ -4,7 +4,7 @@ from krogon.config import config, Config
 from krogon.load_cli_modules import load_krogon_plugin_click_commands
 import krogon.gcp.gcloud as g
 import krogon.k8s.kubectl as k
-import python_either.either as E
+import krogon.either as E
 from pprint import pprint
 
 

@@ -1,14 +1,14 @@
 from base64 import b64encode
 from typing import Union, List
-from python_either.either_ext import chain
+from krogon.either_ext import chain
 from krogon.config import Config
 from krogon.os import OS
 from krogon.logger import Logger
 from typing import Optional
-from python_maybe.nullable import nmap
+from krogon.nullable import nmap
 import krogon.yaml as yaml
-import python_either.either as E
-import python_maybe.maybe as M
+import krogon.either as E
+import krogon.maybe as M
 import krogon.gcp.gcloud as g
 import krogon.file_system as fs
 

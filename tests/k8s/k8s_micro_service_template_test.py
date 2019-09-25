@@ -1,4 +1,4 @@
-import python_either.either as E
+import krogon.either as E
 import json
 from krogon import krogon
 from krogon import config

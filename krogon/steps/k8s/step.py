@@ -1,7 +1,7 @@
 from typing import List
 from krogon.pipeline import pipeline
 import krogon.yaml as y
-import python_either.either as E
+import krogon.either as E
 import krogon.k8s.kubectl as k
 from krogon.exec_context import ExecContext
 

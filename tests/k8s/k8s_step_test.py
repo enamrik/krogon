@@ -1,5 +1,5 @@
 import krogon.file_system as f
-import python_either.either as E
+import krogon.either as E
 from python_mock import PyMock, assert_that
 import json
 from krogon import krogon
