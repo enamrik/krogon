@@ -12,9 +12,12 @@ class MockOsSystem:
         os_system = Mock(spec=OS)
         os_system.is_macos = Mock(name='os_system.is_macos', return_value=True)
         os_system.run = Mock(name='os_system.run', return_value=E.success())
-        os_system.get_env = Mock(name='os_system.run', return_value=None)
+        os_system.get_env = Mock(name='os_system.get_env', return_value=None)
         self.os_system = os_system
         self.mock_gcloud_download(E.success())
+
+    def mock_get_env(self, key, return_values):
+        PyMock.mock(self.os_system.get_env, args=[key], return_values=return_values)
 
     def mock_kubectl_apply_temp_file(self, cluster_name: str, return_value: E.Either[Any, Any]):
         return self.mock_kubectl(cluster_name, command='apply -f /temp/template.yaml', return_value=return_value)

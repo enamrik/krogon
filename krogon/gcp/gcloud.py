@@ -20,7 +20,7 @@ class GCloud:
                  log: Logger,
                  init_client: Callable[[str, str, dict], Any]):
         self.init_client = init_client
-        self.service_account_info = config.service_account_info
+        self.service_account_info = config.get_ensure_service_account_info()
         self.file = file
         self.config = config
         self.run = lambda cmd: os.run(cmd, log)
@@ -77,7 +77,7 @@ def gen_kubeconfig(gcloud: GCloud, cluster_name: str):
                                                     cache_dir=gcloud.config.cache_dir,
                                                     kubeconfig_file=kubeconfig_file,
                                                     key_file=gcloud.config.service_account_file,
-                                                    project=gcloud.config.project_id)))
+                                                    project=gcloud.config.get_ensure_project_id())))
 
 
 def get_clusters(gcloud: GCloud, by_tag: str):
@@ -117,7 +117,7 @@ def _delete_service_account_file(gcloud: GCloud):
 
 def _write_service_account_file(gcloud: GCloud):
     gcloud.file.write(gcloud.config.service_account_file,
-                      json.dumps(gcloud.config.service_account_info, ensure_ascii=False))
+                      json.dumps(gcloud.config.get_ensure_service_account_info(), ensure_ascii=False))
 
 
 def _kubeconfig_file_path(cache_dir: str, cluster_name: str):

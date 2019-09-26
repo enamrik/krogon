@@ -1,6 +1,6 @@
 from base64 import b64decode
 from typing import Optional
-
+import sys
 import krogon.file_system as f
 import krogon.os as o
 import json
@@ -27,8 +27,6 @@ def config(project_id: Optional[str] = None,
 
     delete = _get_arg(os, 'KG_DELETE', delete, default=False, transform=_parse_bool)
     output_template = _get_arg(os, 'KG_TEMPLATE', output_template, default=False, transform=_parse_bool)
-    service_account_b64 = _get_arg(os, 'KG_SERVICE_ACCOUNT_B64', service_account_b64)
-    project_id = _get_arg(os, 'KG_PROJECT_ID', project_id)
 
     return Config(project_id,
                   service_account_b64,
@@ -38,16 +36,8 @@ def config(project_id: Optional[str] = None,
                   output_dir,
                   scripts_dir,
                   output_template,
-                  delete)
-
-
-def _get_arg(os: o.OS, key, value, default=None, transform=(lambda x: x)):
-    value = os.get_env(key) if value is None else value
-    value = default if value is None else value
-    if value is None:
-        raise "MISSING arg {}".format(key)
-    else:
-        return transform(value)
+                  delete,
+                  os)
 
 
 def _parse_bool(v):
@@ -67,18 +57,28 @@ class Config:
                  output_dir,
                  scripts_dir: str,
                  output_template: bool,
-                 deleting: bool):
+                 deleting: bool,
+                 os: o.OS):
         self.deleting = deleting
         self.output_template = output_template
         self.project_id = project_id
         self.krogon_version = krogon_version
         self.krogon_install_url = krogon_install_url
         self.service_account_b64 = service_account_b64
-        self.service_account_info = json.loads(b64decode(service_account_b64).decode("utf-8"))
         self.cache_dir = cache_dir
         self.output_dir = output_dir
         self.scripts_dir = scripts_dir
         self.service_account_file = cache_dir + '/service_account.json'
+        self.os = os
+
+    def get_ensure_service_account_b64(self):
+        return _get_arg(self.os, 'KG_SERVICE_ACCOUNT_B64', self.service_account_b64)
+
+    def get_ensure_project_id(self):
+        return _get_arg(self.os, 'KG_PROJECT_ID', self.project_id)
+
+    def get_ensure_service_account_info(self):
+        return json.loads(b64decode(self.get_ensure_service_account_b64()).decode("utf-8"))
 
     @staticmethod
     def output_folder_name():
@@ -91,3 +91,14 @@ class Config:
     @staticmethod
     def scripts_folder_name():
         return 'scripts'
+
+
+def _get_arg(os: o.OS, key, value, default=None, transform=(lambda x: x)):
+    value = os.get_env(key) if value is None else value
+    value = default if value is None else value
+    if value is None:
+        return sys.exit("MISSING arg {}".format(key))
+    else:
+        return transform(value)
+
+

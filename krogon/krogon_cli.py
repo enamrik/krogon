@@ -13,8 +13,8 @@ from pprint import pprint
 def cli(ctx):
     context = ExecContext(config())
     cli_plugin_context = dict(
-        project_id=context.config.project_id,
-        service_account_b64=context.config.service_account_b64,
+        project_id=context.config.get_ensure_project_id(),
+        service_account_b64=context.config.get_ensure_service_account_b64(),
         krogon_install_url=context.config.krogon_install_url,
         kubectl=lambda cluster_name, command: k.kubectl(context.kubectl, cluster_name, command))
     ctx.obj = cli_plugin_context
