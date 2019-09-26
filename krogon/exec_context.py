@@ -1,3 +1,5 @@
+from typing import List
+
 import krogon.file_system as f
 import krogon.gcp.gcloud as g
 import krogon.k8s.kubectl as k
@@ -22,6 +24,9 @@ class ExecContext:
         self.logger = logger
         self.config = config
         self.templates = []
+
+    def append_templates(self, templates: List[dict]):
+        self.templates = self.templates + templates
 
     def os_run(self, command: str) -> E.Either[str, any]:
         return self.os.run(command, self.logger)

@@ -92,21 +92,11 @@ def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
 
 def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cluster_tag: str):
     return k_ctl.file.with_temp_file(
-        contents=_combine_templates(templates),
+        contents=yaml.combine_templates(templates),
         filename='template.yaml',
         runner=lambda temp_file: kubectl_all_by_tag(k_ctl,
                                                     cluster_tag,
                                                     action+' -f {}'.format(temp_file)))
-
-
-def _combine_templates(templates: List[Union[dict, str]]) -> str:
-    def _get_template_string(template: Union[dict, str]) -> str:
-        if type(template) is not str:
-            template = yaml.dump(template)
-        return template
-
-    template_strings = list(map(_get_template_string, templates))
-    return '\n---\n'.join(template_strings)
 
 
 def _setup(k_ctl: KubeCtl, cluster_name: str):

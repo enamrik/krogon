@@ -29,7 +29,7 @@ def _run(context: ExecContext, steps: List, cluster_name: str):
 def _run_template(template, context: ExecContext):
     if hasattr(template, 'run'):
         template_dicts = template.run()
-        context.templates = context.templates + template_dicts
+        context.append_templates(template_dicts)
         return context
 
     if hasattr(template, 'map_context'):

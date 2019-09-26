@@ -5,7 +5,7 @@ from ruamel.yaml.compat import StringIO
 
 def combine_templates(templates: List[Union[dict, str]]) -> str:
     def _get_template_string(template: Union[dict, str]) -> str:
-        if type(template) == dict:
+        if type(template) is not str:
             template = dump(template)
         return template
 
