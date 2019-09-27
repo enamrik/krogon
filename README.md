@@ -7,6 +7,7 @@ Setup your virtual environment:
 ```bash
 	pip install virtualenv
 	virtualenv .venv  --no-site-packages
+    . ./.venv/bin/activate
 ```
 
 Install Krogon:
