@@ -6,8 +6,8 @@ import krogon.maybe as M
 from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 
 
-def micro_service(name: str, image: str, port: int):
-    return K8sMicroServiceTemplate(name, image, port)
+def micro_service(name: str, image: str, app_port: int):
+    return K8sMicroServiceTemplate(name, image, app_port)
 
 
 class K8sMicroServiceTemplate:
