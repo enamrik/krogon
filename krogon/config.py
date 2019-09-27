@@ -19,11 +19,8 @@ def config(project_id: Optional[str] = None,
     scripts_dir = fs.path_rel_to_file('./' + Config.scripts_folder_name(), __file__)
     output_dir = fs.cwd() + '/' + Config.output_folder_name()
 
-    if not fs.exists(cache_dir):
-        fs.mkdir(cache_dir)
-
-    if not fs.exists(output_dir):
-        fs.mkdir(output_dir)
+    fs.ensure_path(cache_dir)
+    fs.ensure_path(output_dir)
 
     delete = _get_arg(os, 'KG_DELETE', delete, default=False, transform=_parse_bool)
     output_template = _get_arg(os, 'KG_TEMPLATE', output_template, default=False, transform=_parse_bool)

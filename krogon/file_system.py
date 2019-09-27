@@ -3,6 +3,7 @@ import krogon.either as E
 import os
 import glob as gb
 import tempfile
+import glob
 
 
 class FileSystem:
@@ -49,6 +50,17 @@ class FileSystem:
 
     def dirname(self, path):
         return os.path.dirname(path)
+
+    def files_in(self, directory):
+        return glob.glob(directory+'/*')
+
+    def directories_in(self, directory):
+        return [name for name in os.listdir(directory)
+                if os.path.isdir(os.path.join(directory, name))]
+
+    def ensure_path(self, directory):
+        if not self.exists(directory):
+            self.mkdir(directory)
 
 
 def file_system():

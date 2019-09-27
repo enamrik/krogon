@@ -89,11 +89,13 @@ def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cl
 def _kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
     kubeconfig_file = g.kubeconfig_file_path(k_ctl.gcloud, cluster_name)
     return _setup(k_ctl, cluster_name) \
+           | E.on | (dict(whatever=lambda _x, _y: k_ctl.log.info("\n\n==========kubectl: {}==========".format(cluster_name)))) \
            | E.then | (lambda _: g.gen_kubeconfig(k_ctl.gcloud, cluster_name)) \
            | E.then | (lambda _: k_ctl.run('{cache_dir}/kubectl --kubeconfig {kubeconfig_file} {command}'
                                            .format(cache_dir=k_ctl.config.cache_dir,
                                                    kubeconfig_file=kubeconfig_file,
-                                                   command=command)))
+                                                   command=command))) \
+           | E.on | (dict(whatever=lambda _x, _y: k_ctl.log.info("\n==========kubectl: {} END==========\n".format(cluster_name))))
 
 
 def _setup(k_ctl: KubeCtl, cluster_name: str):

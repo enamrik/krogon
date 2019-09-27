@@ -1,11 +1,13 @@
 import click
+
+from krogon.either_ext import chain
 from krogon.exec_context import ExecContext
 from krogon.config import config, Config
+from krogon.file_system import FileSystem
 from krogon.load_cli_modules import load_krogon_plugin_click_commands
 import krogon.gcp.gcloud as g
 import krogon.k8s.kubectl as k
 import krogon.either as E
-from pprint import pprint
 
 
 @click.group()
@@ -21,6 +23,26 @@ def cli(ctx):
 
 
 load_krogon_plugin_click_commands(cli)
+
+
+@cli.command()
+def run_output():
+    context = ExecContext(config())
+    fs: FileSystem = context.fs
+    cluster_names = fs.directories_in(context.config.output_dir)
+
+    if len(cluster_names) == 0:
+        print("No cluster directories in output folder")
+        return
+
+    def _run_in_cluster(cluster_name):
+        template_files = fs.files_in('{}/{}'.format(context.config.output_dir, cluster_name))
+        templates = [fs.read(i) for i in template_files]
+        return k.apply(context.kubectl, templates, cluster_name)
+
+    chain(cluster_names, lambda cluster_name: _run_in_cluster(cluster_name)) \
+    | E.on | dict(success=lambda c: context.logger.info('DONE:'),
+                  failure=lambda e: context.logger.error('FAILED: {}'.format(e)))
 
 
 @cli.command()

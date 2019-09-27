@@ -50,8 +50,13 @@ def _run(context: ExecContext, steps: List, cluster_tag: str):
 def _handle_result(context: ExecContext, cluster_name):
     if context.config.output_template:
         combined_template = y.combine_templates(context.templates)
-        file_path = '{}/{}-k8s.yaml'.format(context.config.output_dir, cluster_name)
+
+        file_dir = '{}/{}'.format(context.config.output_dir, cluster_name)
+        context.fs.ensure_path(file_dir)
+        file_path = '{}/k8s.yaml'.format(file_dir)
+
         context.logger.info('Writing k8s template to {}'.format(file_path))
+
         context.fs.write(file_path, combined_template)
         return E.success(combined_template)
     else:

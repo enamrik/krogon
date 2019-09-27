@@ -69,6 +69,7 @@ def gen_kubeconfig(gcloud: GCloud, cluster_name: str):
 
     kubeconfig_file = _kubeconfig_file_path(gcloud.config.cache_dir, cluster_name)
 
+    gcloud.log.info("\n\n==========KUBECONFIG SETUP==========")
     return _configure_auth(gcloud) \
            | E.then | (lambda _: gcloud.run('{scripts_dir}/create-kube-config.sh {cluster_name} '
                                             '{cache_dir} {key_file} "{kubeconfig_file}" {project}'
@@ -77,7 +78,8 @@ def gen_kubeconfig(gcloud: GCloud, cluster_name: str):
                                                     cache_dir=gcloud.config.cache_dir,
                                                     kubeconfig_file=kubeconfig_file,
                                                     key_file=gcloud.config.service_account_file,
-                                                    project=gcloud.config.get_ensure_project_id())))
+                                                    project=gcloud.config.get_ensure_project_id()))) \
+           | E.on | (dict(whatever=lambda _x, _y: gcloud.log.info("\n==========KUBECONFIG SETUP END==========\n")))
 
 
 def get_clusters(gcloud: GCloud, by_tag: str):
