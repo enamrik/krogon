@@ -102,7 +102,9 @@ def _get_templates(name: str,
                 },
                 'template': {
                     'metadata': {
-                        'annotations': {'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0"},
+                        'annotations': {
+                            'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0",
+                            "sidecar.istio.io/inject": "true"},
                         'labels': {'app': _app_name(name)}},
                     'spec': {
                         'containers': nlist([
