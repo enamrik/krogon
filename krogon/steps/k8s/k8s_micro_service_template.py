@@ -18,7 +18,6 @@ class K8sMicroServiceTemplate:
         self.service_port = 80
         self.containers = []
         self.environment_vars = []
-        self.postgres_proxy_settings = M.nothing()
         self.command = M.nothing()
         self.sidecars = []
         self.volumes = []
@@ -36,11 +35,6 @@ class K8sMicroServiceTemplate:
 
     def with_command(self, command_args: List[str]):
         self.command = M.just(command_args)
-        return self
-
-    def with_postgres(self, db_name: str, db_region: str, service_account_b64: str):
-        self.postgres_proxy_settings = M.just(dict(
-            db_name=db_name, db_region=db_region, service_account_b64=service_account_b64))
         return self
 
     def with_environment_variable(self, name: str, value: str):
