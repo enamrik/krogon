@@ -1,5 +1,5 @@
 from base64 import b64encode
-from typing import Union, List
+from typing import Union, List, Callable
 from krogon.either_ext import chain
 from krogon.config import Config
 from krogon.os import OS
@@ -58,8 +58,8 @@ def delete(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_tag: str):
     return _exec_template(k_ctl, 'delete', templates, cluster_tag)
 
 
-def apply(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_tag: str):
-    return _exec_template(k_ctl, 'apply', templates, cluster_tag)
+def apply(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_name: str):
+    return _exec_template(k_ctl, 'apply', templates, cluster_name)
 
 
 def proxy(k_ctl: KubeCtl, cluster_name: str, port: str):
@@ -71,16 +71,22 @@ def proxy(k_ctl: KubeCtl, cluster_name: str, port: str):
                                                    port=port)))
 
 
-def kubectl_all_by_tag(k_ctl: KubeCtl, cluster_tag: str, command: str):
-
-    def _exec_in_clusters(cluster_names: List[str]):
-        return chain(cluster_names, lambda cluster_name: kubectl(k_ctl, cluster_name, command))
-
-    return g.get_clusters(k_ctl.gcloud, by_tag=cluster_tag) \
-           | E.then | (lambda cluster_names: _exec_in_clusters(cluster_names))
+def get_clusters(k_ctl: KubeCtl, by_tag: str):
+    return g.get_clusters(k_ctl.gcloud, by_tag=by_tag)
 
 
 def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
+    return _kubectl(k_ctl, cluster_name, command)
+
+
+def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cluster_name: str):
+    return k_ctl.file.with_temp_file(
+        contents=yaml.combine_templates(templates),
+        filename='template.yaml',
+        runner=lambda temp_file: _kubectl(k_ctl, cluster_name, action+' -f {}'.format(temp_file)))
+
+
+def _kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
     kubeconfig_file = g.kubeconfig_file_path(k_ctl.gcloud, cluster_name)
     return _setup(k_ctl, cluster_name) \
            | E.then | (lambda _: g.gen_kubeconfig(k_ctl.gcloud, cluster_name)) \
@@ -88,15 +94,6 @@ def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
                                            .format(cache_dir=k_ctl.config.cache_dir,
                                                    kubeconfig_file=kubeconfig_file,
                                                    command=command)))
-
-
-def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cluster_tag: str):
-    return k_ctl.file.with_temp_file(
-        contents=yaml.combine_templates(templates),
-        filename='template.yaml',
-        runner=lambda temp_file: kubectl_all_by_tag(k_ctl,
-                                                    cluster_tag,
-                                                    action+' -f {}'.format(temp_file)))
 
 
 def _setup(k_ctl: KubeCtl, cluster_name: str):

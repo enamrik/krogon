@@ -34,7 +34,9 @@ spec:
         image: test-service:1.0.0
         ports:
         - containerPort: 3000
-        env: []
+        env:
+        - name: CLUSTER
+          value: prod-us-east1
       volumes: []
 
 ---

@@ -15,6 +15,10 @@ class MockOsSystem:
         os_system.get_env = Mock(name='os_system.get_env', return_value=None)
         self.os_system = os_system
         self.mock_gcloud_download(E.success())
+        self.mock_kubernetes_release(return_value=E.success("1.16"))
+        self.mock_download_install_kubectl("1.16", return_value=E.success())
+        self.mock_download_install_helm(return_value=E.success())
+        self.mock_clusters_list(['prod-us-east1'])
 
     def mock_get_env(self, key, return_values):
         PyMock.mock(self.os_system.get_env, args=[key], return_values=return_values)

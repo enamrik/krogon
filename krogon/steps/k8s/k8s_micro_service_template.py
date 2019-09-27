@@ -1,6 +1,9 @@
 from typing import List
+
+from krogon.exec_context import ExecContext
 from krogon.nullable import nlist, nmap
 import krogon.maybe as M
+from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 
 
 def micro_service(name: str, image: str, port: int):
@@ -41,27 +44,27 @@ class K8sMicroServiceTemplate:
         return self
 
     def with_environment_variable(self, name: str, value: str):
-        self.environment_vars = self.environment_vars + [{'name': name, 'value': value}]
+        self.environment_vars = set_environment_variable(self.environment_vars, name, value)
         return self
 
     def with_environment_secret(self, secret_name: str, data: map):
-        def _key_to_secret_ref(env_name, secret_content_key):
-            return {
-                'name': env_name,
-                'valueFrom': {'secretKeyRef': {'name': secret_name, 'key': secret_content_key}}}
-        secret_vars = list(map(lambda item: _key_to_secret_ref(item[0], item[1]), data.items()))
-        self.environment_vars = self.environment_vars + secret_vars
+        self.environment_vars = add_environment_secret(self.environment_vars, secret_name, data)
         return self
 
-    def run(self) -> List[dict]:
-        return _get_templates(self.name,
-                              self.image,
-                              self.app_port,
-                              self.service_port,
-                              self.min_replicas,
-                              self.max_replicas,
-                              self.environment_vars,
-                              self.command)
+    def map_context(self, context: ExecContext) -> ExecContext:
+        if context.get_state('cluster_name') is not None:
+            self.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
+
+        templates = _get_templates(self.name,
+                                   self.image,
+                                   self.app_port,
+                                   self.service_port,
+                                   self.min_replicas,
+                                   self.max_replicas,
+                                   self.environment_vars,
+                                   self.command)
+        context.append_templates(templates)
+        return context
 
 
 def _get_templates(name: str,

@@ -30,7 +30,7 @@ def test_can_execute_service_yaml_with_defaults():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert result[0] == service_defaults
+        assert result[0][0] == service_defaults
 
     mock_krogon_dsl(_run_dsl)
 

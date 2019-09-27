@@ -38,13 +38,13 @@ def test_can_generate_micro_service_template():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert load_all(result[0])[0]['kind'] == 'Service'
-        assert load_all(result[0])[0]['metadata']['name'] == service_name
-        assert load_all(result[0])[0]['spec']['selector']['app'] == service_name+'-app'
-        assert load_all(result[0])[0]['spec']['ports'][0]['targetPort'] == app_port
-        assert load_all(result[0])[0]['spec']['ports'][0]['port'] == service_port
+        assert load_all(result[0][0])[0]['kind'] == 'Service'
+        assert load_all(result[0][0])[0]['metadata']['name'] == service_name
+        assert load_all(result[0][0])[0]['spec']['selector']['app'] == service_name+'-app'
+        assert load_all(result[0][0])[0]['spec']['ports'][0]['targetPort'] == app_port
+        assert load_all(result[0][0])[0]['spec']['ports'][0]['port'] == service_port
 
-        assert load_all(result[0])[1]['kind'] == 'Deployment'
+        assert load_all(result[0][0])[1]['kind'] == 'Deployment'
 
     mock_krogon_dsl(_run_dsl)
 
@@ -78,8 +78,8 @@ def test_can_set_secret():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert load_all(result[0])[1]['kind'] == 'Deployment'
-        container = load_all(result[0])[1]['spec']['template']['spec']['containers'][0]
+        assert load_all(result[0][0])[1]['kind'] == 'Deployment'
+        container = load_all(result[0][0])[1]['spec']['template']['spec']['containers'][0]
         assert container['env'][0]['name'] == 'ENV_NAME'
         assert container['env'][0]['valueFrom']['secretKeyRef']['name'] == 'coolSecret'
         assert container['env'][0]['valueFrom']['secretKeyRef']['key'] == 'secretkey'

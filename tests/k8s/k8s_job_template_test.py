@@ -36,9 +36,9 @@ def test_can_generate_cron_job_template():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert load_all(result[0])[0]['kind'] == 'CronJob'
-        assert load_all(result[0])[0]['metadata']['name'] == job_name
-        container = load_all(result[0])[0]['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]
+        assert load_all(result[0][0])[0]['kind'] == 'CronJob'
+        assert load_all(result[0][0])[0]['metadata']['name'] == job_name
+        container = load_all(result[0][0])[0]['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]
         assert container['name'] == job_name
         assert container['image'] == image_url
 
@@ -73,7 +73,7 @@ def test_can_set_secret_for_job():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        container = load_all(result[0])[0]['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]
+        container = load_all(result[0][0])[0]['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]
         assert container['env'][0]['name'] == 'ENV_NAME'
         assert container['env'][0]['valueFrom']['secretKeyRef']['name'] == 'coolSecret'
         assert container['env'][0]['valueFrom']['secretKeyRef']['key'] == 'secretkey'
