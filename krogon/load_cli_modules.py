@@ -15,8 +15,8 @@ def load_krogon_plugin_click_commands(root_click_group):
                 .__getattribute__(plugin_name)
             root_click_group.add_command(click_cli_group)
         except ModuleNotFoundError:
-            return
+            continue
         except AttributeError:
-            return
+            continue
 
 
