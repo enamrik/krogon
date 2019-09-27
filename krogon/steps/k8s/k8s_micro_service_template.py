@@ -24,7 +24,7 @@ class K8sMicroServiceTemplate:
         self.min_replicas: int = 1
         self.max_replicas: int = 3
 
-    def with_service_port(self, port):
+    def with_service_port(self, port: int):
         self.service_port = port
         return self
 
