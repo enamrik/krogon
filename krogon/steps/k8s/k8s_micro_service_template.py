@@ -41,7 +41,7 @@ class K8sMicroServiceTemplate:
         self.environment_vars = set_environment_variable(self.environment_vars, name, value)
         return self
 
-    def with_environment_secret(self, secret_name: str, data: map):
+    def with_environment_secret(self, secret_name: str, data: dict):
         self.environment_vars = add_environment_secret(self.environment_vars, secret_name, data)
         return self
 
