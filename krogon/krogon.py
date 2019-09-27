@@ -2,12 +2,13 @@ from typing import List
 from krogon.config import Config
 from krogon.exec_context import ExecContext
 from krogon.either_ext import chain
+import krogon.config as c
 import krogon.either as E
 import sys
 
 
-def krogon(run_steps: List, for_config: Config):
-    config = for_config
+def krogon(run_steps: List, for_config: Config = None):
+    config = for_config if for_config is not None else c.config()
     context = ExecContext(config)
     logger = context.logger
 
