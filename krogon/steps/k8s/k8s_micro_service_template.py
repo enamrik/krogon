@@ -22,7 +22,7 @@ class K8sMicroServiceTemplate:
         self.sidecars = []
         self.volumes = []
         self.min_replicas: int = 1
-        self.max_replicas: int = 10
+        self.max_replicas: int = 3
 
     def with_service_port(self, port):
         self.service_port = port
