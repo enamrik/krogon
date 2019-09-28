@@ -85,3 +85,27 @@ def test_can_set_secret():
         assert container['env'][0]['valueFrom']['secretKeyRef']['key'] == 'secretkey'
 
     mock_krogon_dsl(_run_dsl)
+
+
+def test_can_change_service_type():
+    def _run_dsl(args):
+        service_type = 'NodePort'
+
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named='prod-us-east1',
+                    templates=[
+                        micro_service('test', "test-service:1.0.0", 3000)
+                            .with_service_type(service_type)
+                    ]
+                )
+            ],
+            for_config=config("project1",
+                              b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')),
+                              output_template=True)
+        )
+        assert load_all(result[0][0])[0]['kind'] == 'Service'
+        assert load_all(result[0][0])[0]['spec']['type'] == 'NodePort'
+
+    mock_krogon_dsl(_run_dsl)

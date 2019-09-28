@@ -3,6 +3,7 @@ apiVersion: v1
 metadata:
   name: test-service
 spec:
+  type: ClusterIP
   selector:
     app: test-service-app
   ports:

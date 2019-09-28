@@ -23,6 +23,11 @@ class K8sMicroServiceTemplate:
         self.volumes = []
         self.min_replicas: int = 1
         self.max_replicas: int = 3
+        self.service_type: str = 'ClusterIP'
+
+    def with_service_type(self, service_type: str):
+        self.service_type = service_type
+        return self
 
     def with_service_port(self, port: int):
         self.service_port = port
@@ -50,6 +55,7 @@ class K8sMicroServiceTemplate:
             self.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
 
         templates = _get_templates(self.name,
+                                   self.service_type,
                                    self.image,
                                    self.app_port,
                                    self.service_port,
@@ -62,6 +68,7 @@ class K8sMicroServiceTemplate:
 
 
 def _get_templates(name: str,
+                   service_type: str,
                    image: str,
                    app_port: int,
                    service_port: int,
@@ -76,6 +83,7 @@ def _get_templates(name: str,
             'apiVersion': 'v1',
             'metadata': {'name': name},
             'spec': {
+                'type': service_type,
                 'selector': {'app': _app_name(name)},
                 'ports': [{'protocol': 'TCP', 'port': service_port, 'targetPort': app_port}]
             }
