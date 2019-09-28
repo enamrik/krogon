@@ -100,7 +100,17 @@ def get_all_clusters(gcloud: GCloud):
 def _configure_auth(gcloud: GCloud):
     return _install_google_cloud_sdk(gcloud) \
            | E.then | (lambda _: _install_kubectl(gcloud)) \
-           | E.then | (lambda _: _write_service_account_file(gcloud))
+           | E.then | (lambda _: _write_service_account_file(gcloud)) \
+           | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
+                                            "config set project {project}"
+                                            .format(cache_dir=gcloud.config.cache_dir,
+                                                    project=gcloud.config.project_id)
+                                            )) \
+           | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
+                                            "auth activate-service-account --key-file {key_file}"
+                                            .format(cache_dir=gcloud.config.cache_dir,
+                                                    key_file=gcloud.config.service_account_file)
+                                            ))
 
 
 def _cleanup(gcloud: GCloud, cluster_name: str):

@@ -19,6 +19,8 @@ class MockOsSystem:
         self.mock_download_install_kubectl("1.16", return_value=E.success())
         self.mock_download_install_helm(return_value=E.success())
         self.mock_clusters_list(['prod-us-east1'])
+        self.mock_set_project_id('project1', return_values=[E.success()])
+        self.mock_activate_service_account('service_account.json', return_values=[E.success()])
 
     def mock_get_env(self, key, return_values):
         PyMock.mock(self.os_system.get_env, args=[key], return_values=return_values)
@@ -33,6 +35,19 @@ class MockOsSystem:
                     cluster_name=cluster_name, command=command)
 
         PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=[return_value])
+
+    def mock_set_project_id(self, project_id: str, return_values: List[E.Either[Any, Any]]):
+        cmd = '{cwd}/{cache_dir_name}/google-cloud-sdk/bin/gcloud config set project {project}' \
+            .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(), project=project_id)
+
+        PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=return_values)
+
+    def mock_activate_service_account(self, key_file_path: str, return_values: List[E.Either[Any, Any]]):
+        cmd = '{cwd}/{cache_dir_name}/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ' \
+              '{cwd}/{cache_dir_name}/{key_file}' \
+            .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(), key_file=key_file_path)
+
+        PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=return_values)
 
     def mock_clusters_list(self, cluster_names: List[str]):
         cmd = '{cwd}/{cache_dir_name}/google-cloud-sdk/bin/gcloud container clusters list --format=\"value(name)\"' \
