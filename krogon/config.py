@@ -77,6 +77,9 @@ class Config:
     def get_ensure_service_account_info(self):
         return json.loads(b64decode(self.get_ensure_service_account_b64()).decode("utf-8"))
 
+    def get_project_id(self):
+        return _get_arg(self.os, 'KG_PROJECT_ID', "")
+
     @staticmethod
     def output_folder_name():
         return 'output'

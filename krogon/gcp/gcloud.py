@@ -104,7 +104,7 @@ def _configure_auth(gcloud: GCloud):
            | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
                                             "config set project {project}"
                                             .format(cache_dir=gcloud.config.cache_dir,
-                                                    project=gcloud.config.project_id)
+                                                    project=gcloud.config.get_ensure_project_id())
                                             )) \
            | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
                                             "auth activate-service-account --key-file {key_file}"
