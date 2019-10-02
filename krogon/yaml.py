@@ -23,7 +23,8 @@ def dump(obj: dict, default_flow_style=False) -> str:
 
 def load_all(template_str: str) -> List[dict]:
     templates_str = template_str.split('---')
-    return list(map(lambda x: load(x), templates_str))
+    templates_obj = map(lambda x: load(x) if len(x.strip()) > 0 else None, templates_str)
+    return list(filter(lambda x: x is not None, templates_obj))
 
 
 def load(obj_str: str) -> dict:

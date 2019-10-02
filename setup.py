@@ -24,6 +24,7 @@ setup(
         'ruamel.yaml==0.15.87',
         'click==7.0',
         'bcrypt==3.1.6',
+        'requests==2.22.0'
     ],
     extras_require={
         'dev': [

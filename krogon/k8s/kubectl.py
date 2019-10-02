@@ -1,6 +1,5 @@
 from base64 import b64encode
-from typing import Union, List, Callable
-from krogon.either_ext import chain
+from typing import Union, List
 from krogon.config import Config
 from krogon.os import OS
 from krogon.logger import Logger
@@ -71,8 +70,8 @@ def proxy(k_ctl: KubeCtl, cluster_name: str, port: str):
                                                    port=port)))
 
 
-def get_clusters(k_ctl: KubeCtl, by_tag: str):
-    return g.get_clusters(k_ctl.gcloud, by_tag=by_tag)
+def get_clusters(k_ctl: KubeCtl, by_tags: List[str]):
+    return g.get_clusters(k_ctl.gcloud, by_tags=by_tags)
 
 
 def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):

@@ -68,17 +68,17 @@ class Config:
         self.service_account_file = cache_dir + '/service_account.json'
         self.os = os
 
-    def get_ensure_service_account_b64(self):
-        return _get_arg(self.os, 'KG_SERVICE_ACCOUNT_B64', self.service_account_b64)
+    def get_service_account_b64(self, ensure: bool = True):
+        return _get_arg(self.os, 'KG_SERVICE_ACCOUNT_B64', self.service_account_b64, ensure=ensure)
 
-    def get_ensure_project_id(self):
-        return _get_arg(self.os, 'KG_PROJECT_ID', self.project_id)
+    def get_project_id(self, ensure: bool = True):
+        return _get_arg(self.os, 'KG_PROJECT_ID', self.project_id, ensure=ensure)
 
-    def get_ensure_service_account_info(self):
-        return json.loads(b64decode(self.get_ensure_service_account_b64()).decode("utf-8"))
-
-    def get_project_id(self):
-        return _get_arg(self.os, 'KG_PROJECT_ID', "")
+    def get_service_account_info(self, ensure: bool = True):
+        b64_str = self.get_service_account_b64(ensure=ensure)
+        if b64_str is None:
+            return None
+        return json.loads(b64decode(b64_str).decode("utf-8"))
 
     @staticmethod
     def output_folder_name():
@@ -93,12 +93,10 @@ class Config:
         return 'scripts'
 
 
-def _get_arg(os: o.OS, key, value, default=None, transform=(lambda x: x)):
+def _get_arg(os: o.OS, key, value, ensure=False, default=None, transform=(lambda x: x)):
     value = os.get_env(key) if value is None else value
     value = default if value is None else value
-    if value is None:
+    if value is None and ensure is True:
         return sys.exit("MISSING arg {}".format(key))
     else:
         return transform(value)
-
-

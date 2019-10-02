@@ -14,7 +14,9 @@ def krogon(run_steps: List, for_config: Config = None):
 
     logger.info("KROGON:")
     logger.info("version: {}".format(config.krogon_version))
-    logger.info("project: {}".format(config.get_project_id()))
+    logger.info("project: {}".format(config.get_project_id(ensure=False)))
+    logger.info("deleting: {}".format(config.deleting))
+    logger.info("template_output: {}".format(config.output_template))
 
     def _exec_step(step):
         if config.deleting:

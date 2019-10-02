@@ -13,7 +13,7 @@ def test_can_get_project_id_if_exits():
         service_account_key = {"key": "someKey"}
         service_account_b64 = b64encode(json.dumps(service_account_key).encode('utf-8')).decode('utf-8')
         cf = config(project_id=project_id, service_account_b64=service_account_b64)
-        assert cf.get_ensure_project_id() == project_id
+        assert cf.get_project_id() == project_id
 
     mock_krogon_dsl(_run_dsl)
 
@@ -28,7 +28,7 @@ def test_can_get_project_id_if_exits_as_env_variable():
         service_account_key = {'key': 'someKey'}
         service_account_b64 = b64encode(json.dumps(service_account_key).encode('utf-8')).decode('utf-8')
         cf = config(service_account_b64=service_account_b64)
-        assert cf.get_ensure_project_id() == project_id
+        assert cf.get_project_id() == project_id
 
     mock_krogon_dsl(_run_dsl)
 
@@ -41,7 +41,7 @@ def test_can_raise_error_if_project_id_missing():
 
         with patch('sys.exit', return_value="RaisedError"):
             cf = config(project_id=project_id, service_account_b64=service_account_b64)
-            assert cf.get_ensure_project_id() == "RaisedError"
+            assert cf.get_project_id() == "RaisedError"
 
     mock_krogon_dsl(_run_dsl)
 
@@ -96,7 +96,7 @@ def test_can_get_service_account_info_if_exits():
         service_account_b64 = b64encode(json.dumps(service_account_key).encode('utf-8')).decode('utf-8')
         cf = config(project_id=project_id, service_account_b64=service_account_b64)
         assert_same_dict(
-            cf.get_ensure_service_account_info(),
+            cf.get_service_account_info(),
             service_account_key)
 
     mock_krogon_dsl(_run_dsl)

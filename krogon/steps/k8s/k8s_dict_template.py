@@ -1,7 +1,7 @@
 from typing import List
 
 
-def yaml_as_dicts(dicts: List[dict]):
+def from_dicts(dicts: List[dict]):
     return K8sDictTemplate(dicts)
 
 
@@ -11,3 +11,6 @@ class K8sDictTemplate:
 
     def run(self) -> List[dict]:
         return self.dicts
+
+    def __str__(self):
+        return "K8sDictTemplate()"

@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Callable, Any, List
 from google.oauth2 import service_account
 from apiclient.discovery import build
 from krogon.config import Config
@@ -20,7 +20,7 @@ class GCloud:
                  log: Logger,
                  init_client: Callable[[str, str, dict], Any]):
         self.init_client = init_client
-        self.service_account_info = config.get_ensure_service_account_info()
+        self.service_account_info = config.get_service_account_info()
         self.file = file
         self.config = config
         self.run = lambda cmd: os.run(cmd, log)
@@ -78,14 +78,18 @@ def gen_kubeconfig(gcloud: GCloud, cluster_name: str):
                                                     cache_dir=gcloud.config.cache_dir,
                                                     kubeconfig_file=kubeconfig_file,
                                                     key_file=gcloud.config.service_account_file,
-                                                    project=gcloud.config.get_ensure_project_id()))) \
+                                                    project=gcloud.config.get_project_id()))) \
            | E.on | (dict(whatever=lambda _x, _y: gcloud.log.info("\n==========KUBECONFIG SETUP END==========\n")))
 
 
-def get_clusters(gcloud: GCloud, by_tag: str):
+def get_clusters(gcloud: GCloud, by_tags: List[str]):
     def _parse_cluster_names(cluster_names: str):
         names = list(map(lambda c: c.strip().strip(), cluster_names.split('\n')))
-        return list(filter(lambda name: by_tag in name, names))
+        final_names = set()
+        for tag in by_tags:
+            matching_clusters = list(filter(lambda name: tag in name, names))
+            final_names.update(matching_clusters)
+        return list(final_names)
 
     return get_all_clusters(gcloud) | E.then | _parse_cluster_names
 
@@ -104,7 +108,7 @@ def _configure_auth(gcloud: GCloud):
            | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
                                             "config set project {project}"
                                             .format(cache_dir=gcloud.config.cache_dir,
-                                                    project=gcloud.config.get_ensure_project_id())
+                                                    project=gcloud.config.get_project_id())
                                             )) \
            | E.then | (lambda _: gcloud.run("{cache_dir}/google-cloud-sdk/bin/gcloud "
                                             "auth activate-service-account --key-file {key_file}"
@@ -129,7 +133,7 @@ def _delete_service_account_file(gcloud: GCloud):
 
 def _write_service_account_file(gcloud: GCloud):
     gcloud.file.write(gcloud.config.service_account_file,
-                      json.dumps(gcloud.config.get_ensure_service_account_info(), ensure_ascii=False))
+                      json.dumps(gcloud.config.get_service_account_info(), ensure_ascii=False))
 
 
 def _kubeconfig_file_path(cache_dir: str, cluster_name: str):
