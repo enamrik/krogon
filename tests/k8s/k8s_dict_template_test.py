@@ -4,7 +4,7 @@ from base64 import b64encode
 from tests.helpers.entry_mocks import mock_krogon_dsl
 from krogon import krogon
 from krogon import config
-from krogon.steps.k8s import run_in_cluster, yaml_as_dicts
+from krogon.steps.k8s import run_in_cluster, from_dicts
 from krogon.yaml import load_all
 
 fs = f.file_system()
@@ -20,7 +20,7 @@ def test_can_exec_yaml_as_dict():
                 run_in_cluster(
                     named='prod-us-east1',
                     templates=[
-                        yaml_as_dicts([{"kind": "Service"}])
+                        from_dicts([{"kind": "Service"}])
                     ]
                 )
             ],

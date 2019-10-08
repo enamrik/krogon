@@ -53,7 +53,7 @@ def test_can_get_service_account_if_exits():
         service_account_b64 = b64encode(json.dumps(service_account_key).encode('utf-8')).decode('utf-8')
         cf = config(project_id=project_id, service_account_b64=service_account_b64)
         assert_same_dict(
-            json.loads(b64decode(cf.get_ensure_service_account_b64()).decode('utf-8')),
+            json.loads(b64decode(cf.get_service_account_b64()).decode('utf-8')),
             service_account_key)
 
     mock_krogon_dsl(_run_dsl)
@@ -72,7 +72,7 @@ def test_can_get_service_account_if_exits_as_env_variable():
         cf = config(project_id=project_id)
 
         assert_same_dict(
-            json.loads(b64decode(cf.get_ensure_service_account_b64()).decode('utf-8')),
+            json.loads(b64decode(cf.get_service_account_b64()).decode('utf-8')),
             service_account_key)
 
     mock_krogon_dsl(_run_dsl)
@@ -84,7 +84,7 @@ def test_can_raise_error_if_service_account_missing():
 
         with patch('sys.exit', return_value="RaisedError"):
             cf = config(project_id=project_id)
-            assert cf.get_ensure_service_account_b64() == "RaisedError"
+            assert cf.get_service_account_b64(ensure=True) == "RaisedError"
 
     mock_krogon_dsl(_run_dsl)
 

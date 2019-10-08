@@ -5,7 +5,7 @@ from tests.helpers.entry_mocks import mock_krogon_dsl
 from tests.helpers.mock_file_system import MockFileSystem
 from krogon import krogon
 from krogon import config
-from krogon.steps.k8s import run_in_cluster, yaml_file
+from krogon.steps.k8s import run_in_cluster, from_file
 from krogon.yaml import load_all
 from python_mock import PyMock
 
@@ -29,7 +29,7 @@ def test_can_exec_yaml_file():
                 run_in_cluster(
                     named='prod-us-east1',
                     templates=[
-                        yaml_file(service_defaults_path)
+                        from_file(service_defaults_path)
                     ]
                 )
             ],
