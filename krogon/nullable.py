@@ -33,8 +33,17 @@ class NullableMap(dict):
         return self[key] if key in self else None
 
     def append_if_value(self, key: Any, value: M.Maybe):
-        return value | M.from_maybe | dict(if_just=lambda val: NullableMap(dict(self, **{key: val})),
-                                           if_nothing=lambda: self)
+        if value is None:
+            return self
+
+        return M.from_value(value) | M.from_maybe | dict(if_just=lambda val: NullableMap(dict(self, **{key: val})),
+                                                         if_nothing=lambda: self)
+
+    def to_maybe(self):
+        if len(self.keys()) == 0:
+            return M.nothing()
+        else:
+            return M.just(self.to_map())
 
     def to_map(self):
         return dict(self)

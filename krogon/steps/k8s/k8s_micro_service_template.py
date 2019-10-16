@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from krogon.exec_context import ExecContext
 from krogon.nullable import nlist, nmap
 import krogon.maybe as M
+import krogon.nullable as N
 from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 
 
@@ -19,6 +20,7 @@ class K8sMicroServiceTemplate:
         self.containers = []
         self.environment_vars = []
         self.command = M.nothing()
+        self.resources = M.nothing()
         self.sidecars = []
         self.volumes = []
         self.min_replicas: int = 1
@@ -36,6 +38,27 @@ class K8sMicroServiceTemplate:
     def with_replicas(self, min: int, max: int):
         self.min_replicas = min
         self.max_replicas = max
+        return self
+
+    def with_resources(self,
+                       cpu_request: Optional[str] = None,
+                       memory_request: Optional[str] = None,
+                       cpu_limit: Optional[str] = None,
+                       memory_limit: Optional[str] = None):
+
+        def set_resource(cpu, memory):
+            return N.nmap({})\
+                .append_if_value('cpu', cpu)\
+                .append_if_value('memory', memory)\
+                .to_maybe()
+
+        requests = set_resource(cpu_request, memory_request)
+        limits = set_resource(cpu_limit, memory_limit)
+        self.resources = N.nmap({}) \
+            .append_if_value('requests', requests) \
+            .append_if_value('limits', limits) \
+            .to_maybe()
+
         return self
 
     def with_command(self, command_args: List[str]):
@@ -62,7 +85,8 @@ class K8sMicroServiceTemplate:
                                    self.min_replicas,
                                    self.max_replicas,
                                    self.environment_vars,
-                                   self.command)
+                                   self.command,
+                                   self.resources)
         context.append_templates(templates)
         return context
 
@@ -75,7 +99,8 @@ def _get_templates(name: str,
                    min_replicas: int,
                    max_replicas: int,
                    env_vars: List[str],
-                   command: M.Maybe[List[str]]) \
+                   command: M.Maybe[List[str]],
+                   resources: M.Maybe[dict]) \
         -> List[dict]:
     return nlist([
         {
@@ -116,7 +141,10 @@ def _get_templates(name: str,
                                 'ports': [{'containerPort': app_port}],
                                 'env': env_vars
                             }).append_if_value(
-                                'command', command).to_map()
+                                'command', command)
+                                .append_if_value(
+                                'resources', resources)
+                                .to_map()
                         ]).to_list(),
                         'volumes': nlist([]).to_list()
                     }

@@ -17,7 +17,14 @@ def nothing():
 
 
 def from_value(value) -> Maybe[B]:
-    return just(value) if value is not None else nothing()
+    return _cast_to_maybe(value)
+
+
+def from_value_or_default(value, default) -> Maybe[B]:
+    return from_maybe(
+        _cast_to_maybe(value),
+        dict(if_just=lambda x: just(x),
+             if_nothing=lambda: _cast_to_maybe(default)))
 
 
 @Infix
@@ -63,8 +70,12 @@ def from_maybe(maybe: Maybe[A], dict_args: dict) -> B:
 
 
 def _cast_to_maybe(result):
+    if result is None:
+        return nothing()
+
     if isinstance(result, tuple) and len(result) == 2:
         maybe_type, value = result
         if maybe_type == "just" or maybe_type == "nothing":
             return result
-    return "just", result
+
+    return just(result)
