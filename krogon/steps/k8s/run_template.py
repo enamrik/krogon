@@ -34,7 +34,7 @@ def _run_build_template(template, context: ExecContext) -> E.Either:
     if hasattr(template, 'map_context'):
         template_count = len(context.templates)
         context = template.map_context(context)
-        templates_to_run = context.templates[template_count:len(context.templates)]
-        return context, templates_to_run
+        template_dicts = context.templates[template_count:len(context.templates)]
+        return context, template_dicts
 
     return sys.exit("Unsupported template type: {}".format(type(template)))

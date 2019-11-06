@@ -10,6 +10,7 @@ import krogon.file_system as fs
 import krogon.yaml as yaml
 import krogon.either as E
 import json
+import re
 
 
 class GCloud:
@@ -87,7 +88,8 @@ def get_clusters(gcloud: GCloud, by_tags: List[str]):
         names = list(map(lambda c: c.strip().strip(), cluster_names.split('\n')))
         final_names = set()
         for tag in by_tags:
-            matching_clusters = list(filter(lambda name: tag in name, names))
+            print("Checkking", tag)
+            matching_clusters = list(filter(lambda name: re.search(tag, name) is not None, names))
             final_names.update(matching_clusters)
         return list(final_names)
 

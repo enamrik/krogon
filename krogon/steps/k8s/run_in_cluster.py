@@ -42,12 +42,10 @@ def _run(context: ExecContext, steps: List, cluster_tags: List[str]):
         run_context.set_state('cluster_tags', cluster_tags)
         return pipeline(steps,
                         lambda step, cur_ctx:
-                            build_template(step, cur_ctx)
+                            _write_template_to_disk(build_template(step, cur_ctx), cluster_name=cluster_name)
                             if context.config.output_template
                             else exec_template(step, cur_ctx, cluster_name),
-                        run_context) \
-               | E.then | (lambda cur_ctx: _handle_result(context=cur_ctx,
-                                                          cluster_name=cluster_name))
+                        run_context)
 
     def _exec_in_clusters(cluster_names: List[str]):
         return chain(cluster_names, lambda cluster_name: _run_in_cluster(cluster_name))
@@ -57,17 +55,14 @@ def _run(context: ExecContext, steps: List, cluster_tags: List[str]):
         | E.then | (lambda cluster_names: _exec_in_clusters(cluster_names))
 
 
-def _handle_result(context: ExecContext, cluster_name):
-    if context.config.output_template:
-        combined_template = y.combine_templates(context.templates)
+def _write_template_to_disk(context: ExecContext, cluster_name):
+    combined_template = y.combine_templates(context.templates)
 
-        file_dir = '{}/{}'.format(context.config.output_dir, cluster_name)
-        context.fs.ensure_path(file_dir)
-        file_path = '{}/k8s.yaml'.format(file_dir)
+    file_dir = '{}/{}'.format(context.config.output_dir, cluster_name)
+    context.fs.ensure_path(file_dir)
+    file_path = '{}/k8s.yaml'.format(file_dir)
 
-        context.logger.info('Writing k8s template to {}'.format(file_path))
+    context.logger.info('Writing k8s template to {}'.format(file_path))
 
-        context.fs.write(file_path, combined_template)
-        return E.success(combined_template)
-    else:
-        return E.success()
+    context.fs.write(file_path, combined_template)
+    return E.success(context)
