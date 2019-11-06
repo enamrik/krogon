@@ -39,6 +39,7 @@ spec:
         env:
         - name: CLUSTER
           value: prod-us-east1
+        volumeMounts: []
       volumes: []
 
 ---

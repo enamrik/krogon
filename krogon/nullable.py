@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 import krogon.maybe as M
 
 
@@ -23,6 +23,9 @@ class NullableList(list):
 
     def append(self, value: Any):
         return NullableList(self + [value])
+
+    def append_all(self, a_list: List[Any]):
+        return NullableList(self + a_list)
 
     def to_list(self):
         return list(self)

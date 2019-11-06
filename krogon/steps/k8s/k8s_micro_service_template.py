@@ -4,6 +4,7 @@ from krogon.exec_context import ExecContext
 from krogon.nullable import nlist, nmap
 import krogon.maybe as M
 import krogon.nullable as N
+from krogon.steps.k8s.k8s_container import K8sContainer
 from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 
 
@@ -17,15 +18,24 @@ class K8sMicroServiceTemplate:
         self.image = image
         self.app_port = app_port
         self.service_port = 80
-        self.containers = []
         self.environment_vars = []
         self.command = M.nothing()
         self.resources = M.nothing()
-        self.sidecars = []
+        self.sidecars: List[K8sContainer] = []
         self.volumes = []
         self.min_replicas: int = 1
         self.max_replicas: int = 3
         self.service_type: str = 'ClusterIP'
+
+    def with_sidecar(self, container: K8sContainer):
+        self.sidecars.append(container)
+        return self
+
+    def with_empty_volume(self, name: str, mount_path: str):
+        self.volumes.append({
+            'volume': {'name': name, 'emptyDir': {}},
+            'mount': {'name': name, 'mountPath': mount_path}})
+        return self
 
     def with_service_type(self, service_type: str):
         self.service_type = service_type
@@ -47,9 +57,9 @@ class K8sMicroServiceTemplate:
                        memory_limit: Optional[str] = None):
 
         def set_resource(cpu, memory):
-            return N.nmap({})\
-                .append_if_value('cpu', cpu)\
-                .append_if_value('memory', memory)\
+            return N.nmap({}) \
+                .append_if_value('cpu', cpu) \
+                .append_if_value('memory', memory) \
                 .to_maybe()
 
         requests = set_resource(cpu_request, memory_request)
@@ -77,96 +87,81 @@ class K8sMicroServiceTemplate:
         if context.get_state('cluster_name') is not None:
             self.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
 
-        templates = _get_templates(self.name,
-                                   self.service_type,
-                                   self.image,
-                                   self.app_port,
-                                   self.service_port,
-                                   self.min_replicas,
-                                   self.max_replicas,
-                                   self.environment_vars,
-                                   self.command,
-                                   self.resources)
+        templates = nlist([
+            {
+                'kind': 'Service',
+                'apiVersion': 'v1',
+                'metadata': {'name': self.name},
+                'spec': {
+                    'type': self.service_type,
+                    'selector': {'app': _app_name(self.name)},
+                    'ports': [{'protocol': 'TCP', 'port': self.service_port, 'targetPort': self.app_port}]
+                }
+            },
+            {
+                'apiVersion': 'apps/v1',
+                'kind': 'Deployment',
+                'metadata': {
+                    'name': _deployment_name(self.name),
+                    'labels': {'app': _app_name(self.name)},
+                },
+                'spec': {
+                    'replicas': 1,
+                    'selector': {
+                        'matchLabels': {
+                            'app': _app_name(self.name)
+                        }
+                    },
+                    'template': {
+                        'metadata': {
+                            'annotations': {
+                                'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0",
+                                "sidecar.istio.io/inject": "true"},
+                            'labels': {'app': _app_name(self.name)}},
+                        'spec': {
+                            'containers': nlist([
+                                nmap({
+                                    'name': _app_name(self.name),
+                                    'image': self.image,
+                                    'ports': [{'containerPort': self.app_port}],
+                                    'env': self.environment_vars,
+                                    'volumeMounts': list(map(lambda x: x['mount'], self.volumes))
+                                }).append_if_value(
+                                    'command', self.command)
+                                    .append_if_value(
+                                    'resources', self.resources)
+                                    .to_map()
+                            ]).append_all(
+                                list(map(lambda x: _to_container_template(x, context), self.sidecars))).to_list(),
+                            'volumes': list(map(lambda x: x['volume'], self.volumes))
+                        }
+                    }
+                }
+            },
+            {
+                'apiVersion': 'autoscaling/v1',
+                'kind': 'HorizontalPodAutoscaler',
+                'metadata': {'name': _horizontal_pod_autoscaler_name(self.name)},
+                'spec': {
+                    'scaleTargetRef': {
+                        'apiVersion': 'apps/v1',
+                        'kind': 'Deployment',
+                        'name': _deployment_name(self.name)
+                    },
+                    'minReplicas': self.min_replicas,
+                    'maxReplicas': self.max_replicas,
+                    'targetCPUUtilizationPercentage': 50
+                }
+            }
+        ]).to_list()
         context.append_templates(templates)
         return context
 
 
-def _get_templates(name: str,
-                   service_type: str,
-                   image: str,
-                   app_port: int,
-                   service_port: int,
-                   min_replicas: int,
-                   max_replicas: int,
-                   env_vars: List[str],
-                   command: M.Maybe[List[str]],
-                   resources: M.Maybe[dict]) \
-        -> List[dict]:
-    return nlist([
-        {
-            'kind': 'Service',
-            'apiVersion': 'v1',
-            'metadata': {'name': name},
-            'spec': {
-                'type': service_type,
-                'selector': {'app': _app_name(name)},
-                'ports': [{'protocol': 'TCP', 'port': service_port, 'targetPort': app_port}]
-            }
-        },
-        {
-            'apiVersion': 'apps/v1',
-            'kind': 'Deployment',
-            'metadata': {
-                'name': _deployment_name(name),
-                'labels': {'app': _app_name(name)},
-            },
-            'spec': {
-                'replicas': 1,
-                'selector': {
-                    'matchLabels': {
-                        'app': _app_name(name)
-                    }
-                },
-                'template': {
-                    'metadata': {
-                        'annotations': {
-                            'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0",
-                            "sidecar.istio.io/inject": "true"},
-                        'labels': {'app': _app_name(name)}},
-                    'spec': {
-                        'containers': nlist([
-                            nmap({
-                                'name': _app_name(name),
-                                'image': image,
-                                'ports': [{'containerPort': app_port}],
-                                'env': env_vars
-                            }).append_if_value(
-                                'command', command)
-                                .append_if_value(
-                                'resources', resources)
-                                .to_map()
-                        ]).to_list(),
-                        'volumes': nlist([]).to_list()
-                    }
-                }
-            }
-        },
-        {
-            'apiVersion': 'autoscaling/v1',
-            'kind': 'HorizontalPodAutoscaler',
-            'metadata': {'name': _horizontal_pod_autoscaler_name(name)},
-            'spec': {
-                'scaleTargetRef': {
-                    'apiVersion': 'apps/v1',
-                    'kind': 'Deployment',
-                    'name': _deployment_name(name)
-                },
-                'minReplicas': min_replicas,
-                'maxReplicas': max_replicas,
-                'targetCPUUtilizationPercentage': 50
-            }
-        }
-    ]).to_list()
+def _to_container_template(container: K8sContainer, context: ExecContext) -> dict:
+    if context.get_state('cluster_name') is not None:
+        container = container.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
+    return container.get_template()
 
 
 def _horizontal_pod_autoscaler_name(service_name: str):
