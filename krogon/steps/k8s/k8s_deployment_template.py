@@ -1,6 +1,4 @@
-from typing import List
 from krogon.exec_context import ExecContext
-from krogon.nullable import nlist
 from krogon.steps.k8s.k8s_container import K8sContainer, app_name
 
 
@@ -14,6 +12,28 @@ class K8sDeploymentTemplate:
         self.replicas = 1
         self.containers = []
         self.volumes = []
+        self.strategy = {
+            'type': 'RollingUpdate',
+            'rollingUpdate': {
+                'maxSurge': '25%',
+                'maxUnavailable': '25%'
+            }
+        }
+
+    def with_ensure_only_one(self):
+        self.replicas = 1
+        self.strategy = {'type': 'Recreate'}
+        return self
+
+    def with_rolling_update(self, max_surge: str, max_unavailable: str):
+        self.strategy = {
+            'type': 'RollingUpdate',
+            'rollingUpdate': {
+                'maxSurge': max_surge,
+                'maxUnavailable': max_unavailable
+            }
+        }
+        return self
 
     def with_empty_volume(self, name: str):
         self.volumes.append({'name': name, 'emptyDir': {}})
@@ -37,6 +57,7 @@ class K8sDeploymentTemplate:
                     'labels': {'app': app_name(self.name)},
                 },
                 'spec': {
+                    'strategy': self.strategy,
                     'replicas': self.replicas,
                     'selector': {
                         'matchLabels': {

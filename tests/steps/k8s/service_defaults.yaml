@@ -20,14 +20,17 @@ metadata:
     app: test-service-app
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
   selector:
     matchLabels:
       app: test-service-app
   template:
     metadata:
-      annotations:
-        traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
-        sidecar.istio.io/inject: 'true'
+      annotations: {}
       labels:
         app: test-service-app
     spec:

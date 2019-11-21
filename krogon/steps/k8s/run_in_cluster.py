@@ -5,7 +5,7 @@ import krogon.yaml as y
 import krogon.either as E
 import krogon.k8s.kubectl as k
 from krogon.exec_context import ExecContext
-from krogon.steps.k8s.run_template import exec_template, build_template
+from krogon.steps.k8s.run_template import exec_template, add_template_to_context
 
 
 def run_in_cluster(named: Union[str, List[str]], templates: List):
@@ -20,11 +20,11 @@ def run_in_cluster(named: Union[str, List[str]], templates: List):
     )
 
 
-def _delete(context: ExecContext, steps: List, cluster_tags: List[str]):
-    steps.reverse()
+def _delete(context: ExecContext, templates: List, cluster_tags: List[str]):
+    templates.reverse()
 
     def _delete_in_cluster(cluster_name):
-        return pipeline(steps, lambda step, cur_ctx: exec_template(step, cur_ctx, cluster_name), context)
+        return pipeline(templates, lambda template, cur_ctx: exec_template(template, cur_ctx, cluster_name), context)
 
     def _delete_in_clusters(cluster_names: List[str]):
         return chain(cluster_names, lambda cluster_name: _delete_in_cluster(cluster_name))
@@ -34,18 +34,26 @@ def _delete(context: ExecContext, steps: List, cluster_tags: List[str]):
         | E.then | (lambda cluster_names: _delete_in_clusters(cluster_names))
 
 
-def _run(context: ExecContext, steps: List, cluster_tags: List[str]):
+def _run(context: ExecContext, templates: List, cluster_tags: List[str]):
 
     def _run_in_cluster(cluster_name):
         run_context = context.copy()
         run_context.set_state('cluster_name', cluster_name)
         run_context.set_state('cluster_tags', cluster_tags)
-        return pipeline(steps,
-                        lambda step, cur_ctx:
-                            _write_template_to_disk(build_template(step, cur_ctx), cluster_name=cluster_name)
+
+        return pipeline(templates,
+                        lambda template, cur_ctx:
+                            add_template_to_context(template, cur_ctx).context
                             if context.config.output_template
-                            else exec_template(step, cur_ctx, cluster_name),
-                        run_context)
+                            else exec_template(
+                                add_template_to_context(template, cur_ctx).template_dicts,
+                                cur_ctx,
+                                cluster_name),
+                        run_context) \
+               | E.then | (lambda cur_ctx:
+                           _write_template_to_disk(cur_ctx, cluster_name)
+                           if context.config.output_template
+                           else E.success(cur_ctx))
 
     def _exec_in_clusters(cluster_names: List[str]):
         return chain(cluster_names, lambda cluster_name: _run_in_cluster(cluster_name))

@@ -2,13 +2,15 @@ from typing import List
 from krogon.pipeline import pipeline
 import krogon.yaml as y
 import krogon.either as E
-from krogon.steps.k8s.run_template import build_template
+from krogon.steps.k8s.run_template import add_template_to_context
 from krogon.exec_context import ExecContext
 
 
 def gen_template(templates: List):
     def _run_gen(context: ExecContext):
-        return pipeline(templates, lambda step, cur_ctx: build_template(step, cur_ctx), context) \
+        return pipeline(templates,
+                        lambda step, cur_ctx:
+                        add_template_to_context(step, cur_ctx).template_dicts, context) \
                | E.then | (lambda cur_ctx: _handle_result(context=cur_ctx))
 
     return dict(

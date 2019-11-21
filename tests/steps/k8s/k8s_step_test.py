@@ -5,6 +5,7 @@ import json
 from krogon import krogon
 from krogon import config
 from krogon.steps.k8s import run_in_cluster, micro_service
+from krogon.yaml import combine_templates
 from tests.helpers.mock_os_system import MockOsSystem
 from tests.helpers.mock_file_system import MockFileSystem
 from base64 import b64encode
@@ -30,7 +31,7 @@ def test_can_execute_service_yaml_with_defaults():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert result[0][0] == service_defaults
+        assert combine_templates(result[0][0].templates) == service_defaults
 
     mock_krogon_dsl(_run_dsl)
 

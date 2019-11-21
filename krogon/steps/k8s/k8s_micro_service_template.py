@@ -25,10 +25,39 @@ class K8sMicroServiceTemplate:
         self.volumes = []
         self.min_replicas: int = 1
         self.max_replicas: int = 3
+        self.cpu_threshold_percentage: int = 50
         self.service_type: str = 'ClusterIP'
+        self.annotations: dict = {}
+        self.strategy = {
+            'type': 'RollingUpdate',
+            'rollingUpdate': {
+                'maxSurge': '25%',
+                'maxUnavailable': '25%'
+            }
+        }
+
+    def with_ensure_only_one(self):
+        self.min_replicas = 1
+        self.max_replicas = 1
+        self.strategy = {'type': 'Recreate'}
+        return self
+
+    def with_rolling_update(self, max_surge: str, max_unavailable: str):
+        self.strategy = {
+            'type': 'RollingUpdate',
+            'rollingUpdate': {
+                'maxSurge': max_surge,
+                'maxUnavailable': max_unavailable
+            }
+        }
+        return self
 
     def with_sidecar(self, container: K8sContainer):
         self.sidecars.append(container)
+        return self
+
+    def with_annotations(self, annotations: dict):
+        self.annotations = {**self.annotations, **annotations}
         return self
 
     def with_empty_volume(self, name: str, mount_path: str):
@@ -45,9 +74,10 @@ class K8sMicroServiceTemplate:
         self.service_port = port
         return self
 
-    def with_replicas(self, min: int, max: int):
+    def with_replicas(self, min: int, max: int, cpu_threshold_percentage: int = 50):
         self.min_replicas = min
         self.max_replicas = max
+        self.cpu_threshold_percentage = cpu_threshold_percentage
         return self
 
     def with_resources(self,
@@ -106,7 +136,8 @@ class K8sMicroServiceTemplate:
                     'labels': {'app': _app_name(self.name)},
                 },
                 'spec': {
-                    'replicas': 1,
+                    'replicas': self.min_replicas,
+                    'strategy': self.strategy,
                     'selector': {
                         'matchLabels': {
                             'app': _app_name(self.name)
@@ -114,9 +145,7 @@ class K8sMicroServiceTemplate:
                     },
                     'template': {
                         'metadata': {
-                            'annotations': {
-                                'traffic.sidecar.istio.io/excludeOutboundIPRanges': "0.0.0.0/0",
-                                "sidecar.istio.io/inject": "true"},
+                            'annotations': self.annotations,
                             'labels': {'app': _app_name(self.name)}},
                         'spec': {
                             'containers': nlist([
@@ -150,7 +179,7 @@ class K8sMicroServiceTemplate:
                     },
                     'minReplicas': self.min_replicas,
                     'maxReplicas': self.max_replicas,
-                    'targetCPUUtilizationPercentage': 50
+                    'targetCPUUtilizationPercentage': self.cpu_threshold_percentage
                 }
             }
         ]).to_list()

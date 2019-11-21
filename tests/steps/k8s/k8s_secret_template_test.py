@@ -36,8 +36,8 @@ def test_can_generate_secret_template():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert load_all(result[0][0])[0]['kind'] == 'Secret'
-        assert load_all(result[0][0])[0]['metadata']['name'] == secret_name
-        assert b64decode(load_all(result[0][0])[0]['data']['key1'].encode('utf-8')).decode('utf-8') == 'someValue'
+        assert result[0][0].templates[0]['kind'] == 'Secret'
+        assert result[0][0].templates[0]['metadata']['name'] == secret_name
+        assert b64decode(result[0][0].templates[0]['data']['key1'].encode('utf-8')).decode('utf-8') == 'someValue'
 
     mock_krogon_dsl(_run_dsl)

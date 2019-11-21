@@ -5,7 +5,6 @@ from tests.helpers.entry_mocks import mock_krogon_dsl
 from krogon import krogon
 from krogon import config
 from krogon.steps.k8s import run_in_cluster, from_dicts
-from krogon.yaml import load_all
 
 fs = f.file_system()
 
@@ -26,6 +25,6 @@ def test_can_exec_yaml_as_dict():
             ],
             for_config=config(project_id, service_account_b64, output_template=True)
         )
-        assert load_all(result[0][0])[0]['kind'] == 'Service'
+        assert result[0][0].templates[0]['kind'] == 'Service'
 
     mock_krogon_dsl(_run_dsl)
