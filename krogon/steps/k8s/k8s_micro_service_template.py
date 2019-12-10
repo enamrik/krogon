@@ -66,6 +66,14 @@ class K8sMicroServiceTemplate:
             'mount': {'name': name, 'mountPath': mount_path}})
         return self
 
+    def with_volume_claim(self, name: str, claim_name: str, mount_path: str):
+        self.volumes.append({
+            'volume': {
+                'name': name,
+                'persistentVolumeClaim': {'claimName': claim_name}},
+            'mount': {'name': name, 'mountPath': mount_path}})
+        return self
+
     def with_service_type(self, service_type: str):
         self.service_type = service_type
         return self

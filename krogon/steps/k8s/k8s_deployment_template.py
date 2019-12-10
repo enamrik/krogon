@@ -39,6 +39,11 @@ class K8sDeploymentTemplate:
         self.volumes.append({'name': name, 'emptyDir': {}})
         return self
 
+    def with_volume_claim(self, name: str, claim_name: str):
+        self.volumes.append({'name': name,
+                             'persistentVolumeClaim': {'claimName': claim_name}})
+        return self
+
     def with_replicas(self, count):
         self.replicas = count
         return self

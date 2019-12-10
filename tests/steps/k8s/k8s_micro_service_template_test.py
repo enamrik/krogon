@@ -389,3 +389,35 @@ def test_can_set_annotations():
         assert deployment['spec']['template']['metadata']['annotations'] == {'some': 'thing'}
 
     mock_krogon_dsl(_run_dsl)
+
+
+def test_can_setup_volume_claims():
+    def _run_dsl(args):
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named='prod-us-east1',
+                    templates=[
+                        micro_service('test', "test-service:1.0.0", 3000)
+                            .with_volume_claim('my-volume', 'some-volume-claim', '/var/data/my-data')
+                            .with_sidecar(container('my-sidecar', 'my-sidecar:1.0.0')
+                                          .with_volume_mount('my-volume', 'var/data/sidecar-data'))
+                    ]
+                )
+            ],
+            for_config=config("project1",
+                              b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')),
+                              output_template=True)
+        )
+        deployment = result[0][0].templates[1]
+        assert deployment['spec']['template']['spec']['volumes'][0] == {
+            'name': 'my-volume',
+            'persistentVolumeClaim': {'claimName': 'some-volume-claim'}}
+        microservice = deployment['spec']['template']['spec']['containers'][0]
+        assert microservice['volumeMounts'][0] == {'name': 'my-volume', 'mountPath': '/var/data/my-data'}
+        sidecar = deployment['spec']['template']['spec']['containers'][1]
+        assert sidecar['volumeMounts'][0] == {'name': 'my-volume', 'mountPath': 'var/data/sidecar-data'}
+
+    mock_krogon_dsl(_run_dsl)
+
+
