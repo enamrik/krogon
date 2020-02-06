@@ -169,7 +169,7 @@ class K8sMicroServiceTemplate:
                                     'resources', self.resources)
                                     .to_map()
                             ]).append_all(
-                                list(map(lambda x: _to_container_template(x, context), self.sidecars))).to_list(),
+                                list(map(lambda x: x.get_template(context), self.sidecars))).to_list(),
                             'volumes': list(map(lambda x: x['volume'], self.volumes))
                         }
                     }
@@ -193,12 +193,6 @@ class K8sMicroServiceTemplate:
         ]).to_list()
         context.append_templates(templates)
         return context
-
-
-def _to_container_template(container: K8sContainer, context: ExecContext) -> dict:
-    if context.get_state('cluster_name') is not None:
-        container = container.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
-    return container.get_template()
 
 
 def _horizontal_pod_autoscaler_name(service_name: str):

@@ -75,7 +75,7 @@ class K8sDeploymentTemplate:
                                 "sidecar.istio.io/inject": "false"},
                             'labels': {'app': app_name(self.name)}},
                         'spec': {
-                            'containers': list(map(lambda x: _to_container_template(x, context), self.containers)),
+                            'containers': list(map(lambda x: x.get_template(context), self.containers)),
                             'volumes': self.volumes
                         }
                     }
@@ -83,12 +83,6 @@ class K8sDeploymentTemplate:
             },
         ])
         return context
-
-
-def _to_container_template(container: K8sContainer, context: ExecContext) -> dict:
-    if context.get_state('cluster_name') is not None:
-        container = container.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
-    return container.get_template()
 
 
 def _deployment_name(service_name: str):

@@ -421,3 +421,29 @@ def test_can_setup_volume_claims():
     mock_krogon_dsl(_run_dsl)
 
 
+def test_can_set_env_var_from_context_on_sidecar():
+    def _run_dsl(args):
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named='prod-us-east1',
+                    templates=[
+                        micro_service('test', "test-service:1.0.0", 3000)
+                            .with_sidecar(container('my-sidecar', 'my-sidecar:1.0.0')
+                                          .with_volume_mount('my-volume', 'var/data/sidecar-data')
+                                          .with_environment_from_context('ENV', lambda c: c('cluster_name')))
+                    ]
+                )
+            ],
+            for_config=config("project1",
+                              b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')),
+                              output_template=True)
+        )
+        deployment = result[0][0].templates[1]
+        microservice = deployment['spec']['template']['spec']['containers'][1]
+        assert microservice['env'][1]['name'] == 'ENV'
+        assert microservice['env'][1]['value'] == 'prod-us-east1'
+
+    mock_krogon_dsl(_run_dsl)
+
+
