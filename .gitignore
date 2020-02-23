@@ -98,6 +98,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.infra_cache/
+output/
 
 # Spyder project settings
 .spyderproject

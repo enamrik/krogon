@@ -11,3 +11,4 @@ from .k8s_sleep import sleep
 from .k8s_kubectl import kubectl
 from .k8s_url_template import from_url
 from .k8s_persistent_volume_claim_template import volume_claim
+from .k8s_gateway_template import gateway_mapping

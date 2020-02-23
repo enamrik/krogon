@@ -52,8 +52,8 @@ def map(maybe: Maybe[A], mapper: Callable[[A], B]) -> Maybe[B]:
 
 
 @Infix
-def value_or_default(maybe: Maybe[A], value: Callable[[A], B], default_value: B):
-    return maybe | from_maybe | (dict(if_just=value, if_nothing=lambda: default_value))
+def value_or_default(maybe: Maybe[A], default_value: B):
+    return maybe | from_maybe | (dict(if_just=lambda x: x, if_nothing=lambda: default_value))
 
 
 @Infix

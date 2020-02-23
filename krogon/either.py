@@ -88,6 +88,11 @@ def from_either(either: Either[A, E], dict_args) -> Ap:
         return if_failure(either[1])
 
 
+@Infix
+def success_or_default(either: Either[A, E], default_value: A) -> A:
+    return either | from_either | (dict(if_success=lambda x: x, if_failure=lambda _: default_value))
+
+
 class TryCatchError(Exception):
     def __init__(self, error, trace):
         self.caught_error = error
