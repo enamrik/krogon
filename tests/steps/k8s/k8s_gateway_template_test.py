@@ -82,6 +82,41 @@ def test_can_create_ambassador_mapping():
     mock_krogon_dsl(_run_dsl)
 
 
+def test_can_create_ambassador_catch_all_mapping():
+    def _run_dsl(args):
+        os: MockOsSystem = args["os_system"]
+        project_id = "project1"
+        cluster_name = 'prod-us-east1'
+        kubectl_version = "v1.15.3"
+        service_account_b64 = b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))
+
+        os.mock_clusters_list([cluster_name])
+        os.mock_kubernetes_release(E.success(kubectl_version))
+        os.mock_download_install_kubectl(kubectl_version, E.success())
+        os.mock_create_kube_config(cluster_name, E.success())
+        os.mock_kubectl(cluster_name, 'get mappings', E.success())
+        os.mock_kubectl(cluster_name, 'get virtualservices', E.failure('No such resource'))
+
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named=cluster_name,
+                    templates=[
+                        gateway_mapping('api', '*', 'api.default.svc.cluster.local')
+                    ]
+                )
+            ],
+            for_config=config(project_id, service_account_b64, output_template=True)
+        )
+        output_yaml = result[0][0].templates[0]
+        assert output_yaml == {
+            'apiVersion': 'getambassador.io/v1',
+            'kind': 'Mapping', 'metadata': {'name': 'api-mapping'},
+            'spec': {'prefix': '/', 'service': 'api.default.svc.cluster.local'}}
+
+    mock_krogon_dsl(_run_dsl)
+
+
 def test_will_fail_if_neither_istio_or_ambassador_configured_in_cluster():
     def _run_dsl(args):
         os: MockOsSystem = args["os_system"]

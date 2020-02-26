@@ -33,11 +33,10 @@ class K8sGatewayTemplate:
                 'apiVersion': 'getambassador.io/v1',
                 'kind': 'Mapping',
                 'metadata': {'name': self.name+'-mapping'},
-                'spec': {
-                    'host': self.host,
+                'spec': nmap({
                     'prefix': '/',
                     'service': self.service+str(M.map(self.port, (lambda x: ':'+str(x))) | M.value_or_default | '')
-                }
+                }).append_if_value('host', M.nothing() if self.host == '*' else M.just(self.host)).to_map()
             }])
             return context
         if self._is_istio(context):
