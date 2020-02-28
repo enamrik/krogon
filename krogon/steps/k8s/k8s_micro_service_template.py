@@ -22,6 +22,7 @@ class K8sMicroServiceTemplate:
         self.command = M.nothing()
         self.resources = M.nothing()
         self.sidecars: List[K8sContainer] = []
+        self.init_containers: M.Maybe[List[K8sContainer]] = M.nothing()
         self.volumes = []
         self.min_replicas: int = 1
         self.max_replicas: int = 3
@@ -35,6 +36,10 @@ class K8sMicroServiceTemplate:
                 'maxUnavailable': '25%'
             }
         }
+
+    def with_init_containers(self, init_containers: List[K8sContainer]):
+        self.init_containers = M.just(init_containers)
+        return self
 
     def with_ensure_only_one(self):
         self.min_replicas = 1
@@ -155,7 +160,7 @@ class K8sMicroServiceTemplate:
                         'metadata': {
                             'annotations': self.annotations,
                             'labels': {'app': _app_name(self.name)}},
-                        'spec': {
+                        'spec': nmap({
                             'containers': nlist([
                                 nmap({
                                     'name': _app_name(self.name),
@@ -171,7 +176,8 @@ class K8sMicroServiceTemplate:
                             ]).append_all(
                                 list(map(lambda x: x.get_template(context), self.sidecars))).to_list(),
                             'volumes': list(map(lambda x: x['volume'], self.volumes))
-                        }
+                        }).append_if_value('initContainers', self.init_containers)
+                            .to_map()
                     }
                 }
             },

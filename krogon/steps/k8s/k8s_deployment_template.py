@@ -1,5 +1,8 @@
+from typing import List
 from krogon.exec_context import ExecContext
+from krogon.nullable import nmap
 from krogon.steps.k8s.k8s_container import K8sContainer, app_name
+import krogon.maybe as M
 
 
 def deployment(name: str):
@@ -11,6 +14,7 @@ class K8sDeploymentTemplate:
         self.name = name
         self.replicas = 1
         self.containers = []
+        self.init_containers: M.Maybe[List[K8sContainer]] = M.nothing()
         self.volumes = []
         self.strategy = {
             'type': 'RollingUpdate',
@@ -19,6 +23,10 @@ class K8sDeploymentTemplate:
                 'maxUnavailable': '25%'
             }
         }
+
+    def with_init_containers(self, init_containers: List[K8sContainer]):
+        self.init_containers = M.just(init_containers)
+        return self
 
     def with_ensure_only_one(self):
         self.replicas = 1
@@ -74,10 +82,15 @@ class K8sDeploymentTemplate:
                             'annotations': {
                                 "sidecar.istio.io/inject": "false"},
                             'labels': {'app': app_name(self.name)}},
-                        'spec': {
+                        'spec': nmap({
                             'containers': list(map(lambda x: x.get_template(context), self.containers)),
                             'volumes': self.volumes
-                        }
+                        }).append_if_value('initContainers',
+                                           M.map(
+                                               self.init_containers,
+                                               lambda init_containers: list(map(
+                                                   lambda x: x.get_template(context), init_containers))))
+                            .to_map()
                     }
                 }
             },

@@ -447,3 +447,32 @@ def test_can_set_env_var_from_context_on_sidecar():
     mock_krogon_dsl(_run_dsl)
 
 
+def test_microservice_can_set_init_containers():
+    init_container_1 = {'name': 'init-myservice', 'image': 'busybox:1.0'}
+    init_container_2 = {'name': 'init-myservice-2', 'image': 'busybox:2.0'}
+
+    def _run_dsl(args):
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named='prod-us-east1',
+                    templates=[
+                        micro_service('test', "test-service:1.0.0", 3000)
+                            .with_init_containers([init_container_1, init_container_2])
+                    ]
+                )
+            ],
+            for_config=config("project1",
+                              b64encode(json.dumps({'key': 'someKey'}).encode('utf-8')),
+                              output_template=True)
+        )
+        deployment = result[0][0].templates[1]
+        init_containers = deployment['spec']['template']['spec']['initContainers']
+        assert init_containers[0]['name'] == 'init-myservice'
+        assert init_containers[0]['image'] == 'busybox:1.0'
+        assert init_containers[1]['name'] == 'init-myservice-2'
+        assert init_containers[1]['image'] == 'busybox:2.0'
+
+    mock_krogon_dsl(_run_dsl)
+
+
