@@ -286,3 +286,42 @@ def test_deployment_can_set_init_containers():
         assert init_containers[1]['image'] == 'busybox:2.0'
 
     mock_krogon_dsl(_run_dsl)
+
+
+def test_deployment_can_set_multiple_containers():
+    def _run_dsl(args):
+        os: MockOsSystem = args["os_system"]
+        project_id = "project1"
+        app_name = 'test-service'
+        cluster_name = 'prod-us-east1'
+        kubectl_version = "v1.15.3"
+        service_account_b64 = b64encode(json.dumps({'key': 'someKey'}).encode('utf-8'))
+        container_1 = container(name='myservice', image='busybox:1.0')
+        container_2 = container(name='myservice-2', image='busybox:2.0')
+
+        os.mock_clusters_list([cluster_name])
+        os.mock_kubernetes_release(E.success(kubectl_version))
+        os.mock_download_install_kubectl(kubectl_version, E.success())
+        os.mock_create_kube_config(cluster_name, E.success())
+        os.mock_kubectl_apply_temp_file(cluster_name, E.success())
+
+        _, result = krogon(
+            run_steps=[
+                run_in_cluster(
+                    named=cluster_name,
+                    templates=[
+                        deployment(app_name)
+                            .with_containers([container_1, container_2])
+                    ]
+                )
+            ],
+            for_config=config(project_id, service_account_b64)
+        )
+        deployment_yaml = result[0][0].templates[0]
+        containers = deployment_yaml['spec']['template']['spec']['containers']
+        assert containers[0]['name'] == 'myservice-app'
+        assert containers[0]['image'] == 'busybox:1.0'
+        assert containers[1]['name'] == 'myservice-2-app'
+        assert containers[1]['image'] == 'busybox:2.0'
+
+    mock_krogon_dsl(_run_dsl)

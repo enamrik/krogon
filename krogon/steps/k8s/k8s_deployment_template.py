@@ -60,6 +60,10 @@ class K8sDeploymentTemplate:
         self.containers.append(container)
         return self
 
+    def with_containers(self, containers: List[K8sContainer]):
+        self.containers = containers
+        return self
+
     def map_context(self, context: ExecContext) -> ExecContext:
         context.append_templates([
             {
