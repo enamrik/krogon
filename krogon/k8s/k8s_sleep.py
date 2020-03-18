@@ -1,14 +1,15 @@
 import time
-from krogon.exec_context import ExecContext
+
+from krogon.k8s.template_context import TemplateContext
 
 
 class K8sSleep:
     def __init__(self, seconds: float):
         self.seconds = seconds
 
-    def map_context(self, context: ExecContext) -> ExecContext:
+    def map_context(self, context: TemplateContext) -> TemplateContext:
         if not context.config.output_template:
-            context.logger.info("Sleeping for {}s".format(self.seconds))
+            context.config.log.info("Sleeping for {}s".format(self.seconds))
             time.sleep(self.seconds)
         return context
 

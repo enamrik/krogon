@@ -4,6 +4,6 @@ install_deps:
 	. .venv/bin/activate; pip install -e ".[dev]"
 
 test_only:
-	. .venv/bin/activate; pytest -v -s
+	. .venv/bin/activate; pytest -v
 
 test: install_deps test_only

@@ -1,103 +1,102 @@
-from base64 import b64encode
-from typing import Union, List
+import sys
+from typing import List, Callable, Any
 from krogon.config import Config
-from krogon.os import OS
-from krogon.logger import Logger
-from typing import Optional
-from krogon.nullable import nmap
-import krogon.yaml as yaml
+from krogon.either_ext import chain
+from krogon.k8s.providers.gke_provider import GKEProvider
+from krogon.k8s.providers.host_kubectl_provider import HostKubectlProvider
+from krogon.k8s.providers.k8s_provider import K8sProvider
 import krogon.either as E
-import krogon.maybe as M
-import krogon.gcp.gcloud as g
-import krogon.file_system as fs
+import krogon.yaml as yaml
+from krogon.k8s.providers.noop_provider import NoopProvider
 
 
 class KubeCtl:
     def __init__(self,
                  config: Config,
-                 os: OS,
-                 log: Logger,
-                 gcloud: g.GCloud,
-                 file: fs.FileSystem):
+                 k8s_provider: K8sProvider,
+                 cluster_regex: str):
 
-        self.config = config
-        self.log = log
-        self.file = file
-        self.gcloud = gcloud
-        self.run = lambda cmd: os.run(cmd, log)
-        self.is_macos = os.is_macos
+        self._cluster_regex = cluster_regex
+        self._config = config
+        self._log = config.log
+        self._file = config.fs
+        self._k8s_provider = k8s_provider
+        self._run = lambda cmd: config.os.run(cmd, config.log)
 
+    def __str__(self):
+        return 'KubeCtl: Regex: {}, Provider: {}'.format(self._cluster_regex, self._k8s_provider)
 
-def secret(k_ctl: KubeCtl,
-           name: str,
-           key_values: dict,
-           cluster_tag: str,
-           namespace: Optional[str] = None,
-           already_b64: Optional[bool] = False):
+    def get_provider(self) -> K8sProvider:
+        return self._k8s_provider
 
-    to_base64 = lambda value: value \
-        if already_b64 \
-        else b64encode(value.encode('utf-8')).decode('utf-8')
+    def get_clusters(self) -> E.Either[List[str], Any]:
+        return self._k8s_provider.get_clusters(by_regex=self._cluster_regex)
 
-    data = {k: to_base64(v) for k, v in key_values.items()}
+    def cmd(self, cmd: str, cluster_name: str):
+        return self._k8s_provider.kubectl(cmd, cluster_name)
 
-    secret_template = {
-        'apiVersion': 'v1',
-        'kind': 'Secret',
-        'metadata': nmap({
-            'name': name}).append_if_value(
-            'namespace', M.from_value(namespace)).to_map(),
-        'type': 'Opaque',
-        'data': data
-    }
-    return apply(k_ctl, [secret_template], cluster_tag)
+    def cmd_all(self, cmd: str):
+        def _kubectl_in_cluster(cluster_name: str):
+            return self._k8s_provider.kubectl(cmd, cluster_name)
 
+        return self._in_all_clusters(_kubectl_in_cluster)
 
-def delete(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_tag: str):
-    return _exec_template(k_ctl, 'delete', templates, cluster_tag)
+    def _in_all_clusters(self, action: Callable[[str], E.Either]):
+        def _exec_in_clusters(cluster_names: List[str]):
+            return chain(cluster_names, lambda cluster_name: action(cluster_name))
 
+        return \
+            self._k8s_provider.get_clusters(by_regex=self._cluster_regex) \
+            | E.then | (lambda cluster_names: _exec_in_clusters(cluster_names))
 
-def apply(k_ctl: KubeCtl, templates: List[Union[dict, str]], cluster_name: str):
-    return _exec_template(k_ctl, 'apply', templates, cluster_name)
+    def delete(self, templates: List[dict], cluster_name: str):
+        return self._exec_template('delete', templates, cluster_name)
 
+    def apply(self, templates: List[dict], cluster_name: str):
+        return self._exec_template('apply', templates, cluster_name)
 
-def proxy(k_ctl: KubeCtl, cluster_name: str, port: str):
-    return _setup(k_ctl, cluster_name) \
-           | E.then | (lambda _: g.gen_kubeconfig(k_ctl.gcloud, cluster_name)) \
-           | E.then | (lambda _: k_ctl.run('{cache_dir}/kubectl proxy --port {port} --kubeconfig {kubeconfig_file}'
-                                           .format(cache_dir=k_ctl.config.cache_dir,
-                                                   kubeconfig_file=g.kubeconfig_file_path(k_ctl.gcloud, cluster_name),
-                                                   port=port)))
+    def _exec_template(self, action, templates: List[dict], cluster_name: str):
+        if len(templates) is 0:
+            return E.success()
+        return self._file.with_temp_file(
+            contents=yaml.combine_templates(templates),
+            filename='template.yaml',
+            runner=lambda temp_file: self._k8s_provider.kubectl(action+' -f {}'.format(temp_file), cluster_name))
 
 
-def get_clusters(k_ctl: KubeCtl, by_tags: List[str]):
-    return g.get_clusters(k_ctl.gcloud, by_tags=by_tags)
+def discover_conn() -> Callable[[Config], KubeCtl]:
+    def discover(conf: Config) -> KubeCtl:
+        if conf.get_arg('KG_CONN_TYPE') == 'LOCAL':
+            return local_kubectl_conn()(conf)
+        if conf.get_arg('KG_CONN_TYPE') == 'GKE':
+            return gke_conn()(conf)
+        if conf.has_arg('KG_SERVICE_ACCOUNT_B64'):
+            return gke_conn()(conf)
+        else:
+            return local_kubectl_conn()(conf)
+
+    return discover
 
 
-def kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
-    return _kubectl(k_ctl, cluster_name, command)
+def noop_conn() -> Callable[[Config], KubeCtl]:
+    return lambda conf: KubeCtl(conf, NoopProvider(), '')
 
 
-def _exec_template(k_ctl: KubeCtl, action, templates: List[Union[dict, str]], cluster_name: str):
-    return k_ctl.file.with_temp_file(
-        contents=yaml.combine_templates(templates),
-        filename='template.yaml',
-        runner=lambda temp_file: _kubectl(k_ctl, cluster_name, action+' -f {}'.format(temp_file)))
+def local_kubectl_conn() -> Callable[[Config], KubeCtl]:
+    return lambda conf: KubeCtl(conf, HostKubectlProvider(conf), '')
 
 
-def _kubectl(k_ctl: KubeCtl, cluster_name: str, command: str):
-    kubeconfig_file = g.kubeconfig_file_path(k_ctl.gcloud, cluster_name)
-    return _setup(k_ctl, cluster_name) \
-           | E.on | (dict(whatever=lambda _x, _y: k_ctl.log.info("\n\n==========kubectl: {}==========".format(cluster_name)))) \
-           | E.then | (lambda _: g.gen_kubeconfig(k_ctl.gcloud, cluster_name)) \
-           | E.then | (lambda _: k_ctl.run('{cache_dir}/kubectl --kubeconfig {kubeconfig_file} {command}'
-                                           .format(cache_dir=k_ctl.config.cache_dir,
-                                                   kubeconfig_file=kubeconfig_file,
-                                                   command=command))) \
-           | E.on | (dict(whatever=lambda _x, _y: k_ctl.log.info("\n==========kubectl: {} END==========\n".format(cluster_name))))
+def gke_conn(
+        cluster_regex: str = None,
+        project_id: str = None,
+        service_account_b64: str = None) -> Callable[[Config], KubeCtl]:
 
+    def create_kubectl(conf: Config):
+        regex = conf.get_arg('KG_CLUSTER_REGEX', cluster_regex)
+        if regex is None:
+            conf.log.error('gke_conn: cluster_regex required. Either pass cluster_regex or set env var KG_CLUSTER_REGEX')
+            sys.exit(1)
+        return KubeCtl(conf, GKEProvider(project_id, service_account_b64, conf), regex)
 
-def _setup(k_ctl: KubeCtl, cluster_name: str):
-    return g.gen_kubeconfig(k_ctl.gcloud, cluster_name)
-
+    return create_kubectl
 

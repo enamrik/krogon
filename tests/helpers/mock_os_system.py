@@ -17,7 +17,6 @@ class MockOsSystem:
         self.mock_gcloud_download(E.success())
         self.mock_kubernetes_release(return_value=E.success("1.16"))
         self.mock_download_install_kubectl("1.16", return_value=E.success())
-        self.mock_download_install_helm(return_value=E.success())
         self.mock_clusters_list(['prod-us-east1'])
         self.mock_set_project_id('project1', return_values=[E.success()])
         self.mock_activate_service_account('service_account.json', return_values=[E.success()])
@@ -50,6 +49,10 @@ class MockOsSystem:
         PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=return_values)
 
     def mock_clusters_list(self, cluster_names: List[str]):
+        for cluster_name in cluster_names:
+            self.mock_create_kube_config(cluster_name, return_value=E.success())
+            self.mock_kubectl_apply_temp_file(cluster_name, return_value=E.success())
+
         cmd = '{cwd}/{cache_dir_name}/google-cloud-sdk/bin/gcloud container clusters list --format=\"value(name)\"' \
             .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd())
 
@@ -61,15 +64,6 @@ class MockOsSystem:
               '"{cwd}/{cache_dir_name}/{cluster_name}-kubeconfig.yaml" project1' \
             .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(),
                     cluster_name=cluster_name, script_dir=MockFileSystem.script_dir())
-
-        PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=[return_value])
-
-    def mock_download_install_helm(self, return_value: E.Either[Any, Any]):
-        os = 'darwin' if self.os_system.is_macos() else 'linux'
-        cmd = 'cd {cwd}/{cache_dir_name} && mkdir helm && cd ./helm && curl -L ' \
-              'https://storage.googleapis.com/kubernetes-helm/helm-v2.12.1-{os}-amd64.tar.gz ' \
-              '| tar zx && cp -rf ./{os}-amd64/* . && rm -r ./{os}-amd64'\
-            .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(), os=os)
 
         PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=[return_value])
 
@@ -86,7 +80,7 @@ class MockOsSystem:
         os = 'darwin' if self.os_system.is_macos() else 'linux'
         cmd = 'cd {cwd}/{cache_dir_name} && ' \
               'curl -L https://dl.google.com/dl/cloudsdk/channels/rapid/' \
-              'downloads/google-cloud-sdk-228.0.0-{os}-x86_64.tar.gz | tar zx' \
+              'downloads/google-cloud-sdk-284.0.0-{os}-x86_64.tar.gz | tar zx' \
               .format(cache_dir_name=Config.cache_folder_name(), cwd=MockFileSystem.cwd(), os=os)
 
         PyMock.mock(self.os_system.run, args=[cmd, MatchArg.any()], return_values=[return_value])

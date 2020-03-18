@@ -1,6 +1,7 @@
 import krogon.yaml as y
 import requests
-from krogon.exec_context import ExecContext
+
+from krogon.k8s.template_context import TemplateContext
 
 
 def from_url(url: str):
@@ -11,7 +12,7 @@ class K8sUrlTemplate:
     def __init__(self, url):
         self.url = url
 
-    def map_context(self, context: ExecContext) -> ExecContext:
+    def map_context(self, context: TemplateContext) -> TemplateContext:
         req = requests.get(self.url)
         if req.status_code != 200:
             raise Exception("Request fail {} failed: {}".format(self.url, req.status_code))

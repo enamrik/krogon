@@ -1,7 +1,8 @@
 from typing import List
-from krogon.exec_context import ExecContext
+
+from krogon.k8s.k8s_container import K8sContainer, app_name
+from krogon.k8s.template_context import TemplateContext
 from krogon.nullable import nmap
-from krogon.steps.k8s.k8s_container import K8sContainer, app_name
 import krogon.maybe as M
 
 
@@ -64,7 +65,7 @@ class K8sDeploymentTemplate:
         self.containers = containers
         return self
 
-    def map_context(self, context: ExecContext) -> ExecContext:
+    def map_context(self, context: TemplateContext) -> TemplateContext:
         context.append_templates([
             {
                 'kind': 'Deployment',

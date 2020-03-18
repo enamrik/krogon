@@ -16,6 +16,7 @@ def combine_templates(templates: List[Union[dict, str]]) -> str:
 def dump(obj: dict, default_flow_style=False) -> str:
     yaml = YAML()
     yaml.default_flow_style = default_flow_style
+    yaml.preserve_quotes = True
     stream = StringIO()
     yaml.dump(obj, stream)
     return stream.getvalue()
@@ -27,8 +28,10 @@ def load_all(template_str: str) -> List[dict]:
     return list(filter(lambda x: x is not None, templates_obj))
 
 
-def load(obj_str: str) -> dict:
+def load(obj_str: str, default_flow_style=False) -> dict:
     yaml = YAML()
+    yaml.default_flow_style = default_flow_style
+    yaml.preserve_quotes = True
     return yaml.load(obj_str)
 
 

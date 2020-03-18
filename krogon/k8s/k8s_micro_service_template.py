@@ -1,11 +1,11 @@
 from typing import List, Optional
 
-from krogon.exec_context import ExecContext
+from krogon.k8s.k8s_container import K8sContainer
+from krogon.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
+from krogon.k8s.template_context import TemplateContext
 from krogon.nullable import nlist, nmap
 import krogon.maybe as M
 import krogon.nullable as N
-from krogon.steps.k8s.k8s_container import K8sContainer
-from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 
 
 def micro_service(name: str, image: str, app_port: int):
@@ -126,7 +126,7 @@ class K8sMicroServiceTemplate:
         self.environment_vars = add_environment_secret(self.environment_vars, secret_name, data)
         return self
 
-    def map_context(self, context: ExecContext) -> ExecContext:
+    def map_context(self, context: TemplateContext) -> TemplateContext:
         if context.get_state('cluster_name') is not None:
             self.with_environment_variable('CLUSTER', context.get_state('cluster_name'))
 

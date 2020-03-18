@@ -1,7 +1,7 @@
+from krogon.k8s.k8s_env_vars import add_environment_secret
 from krogon.nullable import nlist, nmap
 from typing import List
 import krogon.maybe as M
-from krogon.steps.k8s.k8s_env_vars import add_environment_secret
 
 
 def cron_job(name: str, image: str):

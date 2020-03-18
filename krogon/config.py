@@ -1,17 +1,14 @@
-from base64 import b64decode
-from typing import Optional
 import sys
 import krogon.file_system as f
 import krogon.os as o
-import json
+import traceback
+from krogon.logger import Logger
 
 
-def config(project_id: Optional[str] = None,
-           service_account_b64: Optional[str] = None,
-           output_template: Optional[bool] = None,
-           delete: Optional[bool] = None):
+def config():
     fs = f.file_system()
     os = o.new_os()
+    logger = Logger(name='krogon')
     krogon_version = fs.read(fs.path_rel_to_app_dir('./VERSION')).strip()
     krogon_url = fs.read(fs.path_rel_to_app_dir('./URL')).strip()
     krogon_install_url = '{}@{}##egg=krogon'.format(krogon_url, krogon_version)
@@ -22,32 +19,23 @@ def config(project_id: Optional[str] = None,
     fs.ensure_path(cache_dir)
     fs.ensure_path(output_dir)
 
-    delete = _get_arg(os, 'KG_DELETE', delete, default=False, transform=_parse_bool)
-    output_template = _get_arg(os, 'KG_TEMPLATE', output_template, default=False, transform=_parse_bool)
+    delete = os.get_env('KG_DELETE')
+    output_template = os.get_env('KG_TEMPLATE')
 
-    return Config(project_id,
-                  service_account_b64,
-                  krogon_version,
+    return Config(krogon_version,
                   krogon_install_url,
                   cache_dir,
                   output_dir,
                   scripts_dir,
                   output_template,
                   delete,
-                  os)
-
-
-def _parse_bool(v):
-    if type(v) == str:
-        return v.lower() in ("yes", "true", "1")
-    else:
-        return bool(v)
+                  os,
+                  fs,
+                  logger)
 
 
 class Config:
     def __init__(self,
-                 project_id: str,
-                 service_account_b64: str,
                  krogon_version: str,
                  krogon_install_url: str,
                  cache_dir: str,
@@ -55,30 +43,34 @@ class Config:
                  scripts_dir: str,
                  output_template: bool,
                  deleting: bool,
-                 os: o.OS):
+                 os: o.OS,
+                 fs: f.FileSystem,
+                 log: Logger):
+
         self.deleting = deleting
         self.output_template = output_template
-        self.project_id = project_id
         self.krogon_version = krogon_version
         self.krogon_install_url = krogon_install_url
-        self.service_account_b64 = service_account_b64
         self.cache_dir = cache_dir
         self.output_dir = output_dir
         self.scripts_dir = scripts_dir
         self.service_account_file = cache_dir + '/service_account.json'
         self.os = os
+        self.os_run = lambda cmd: os.run(cmd, log)
+        self.fs = fs
+        self.log = log
 
-    def get_service_account_b64(self, ensure: bool = True):
-        return _get_arg(self.os, 'KG_SERVICE_ACCOUNT_B64', self.service_account_b64, ensure=ensure)
+    def has_arg(self, key):
+        return self.get_arg(key, None) is not None
 
-    def get_project_id(self, ensure: bool = True):
-        return _get_arg(self.os, 'KG_PROJECT_ID', self.project_id, ensure=ensure)
-
-    def get_service_account_info(self, ensure: bool = True):
-        b64_str = self.get_service_account_b64(ensure=ensure)
-        if b64_str is None:
-            return None
-        return json.loads(b64decode(b64_str).decode("utf-8"))
+    def get_arg(self, key, value=None, ensure=False, default=None, transform=(lambda x: x)):
+        value = self.os.get_env(key) if value is None else value
+        value = default if value is None else value
+        if value is None and ensure is True:
+            traceback.print_stack()
+            return sys.exit("MISSING arg {}".format(key))
+        else:
+            return transform(value)
 
     @staticmethod
     def output_folder_name():
@@ -93,10 +85,10 @@ class Config:
         return 'scripts'
 
 
-def _get_arg(os: o.OS, key, value, ensure=False, default=None, transform=(lambda x: x)):
-    value = os.get_env(key) if value is None else value
-    value = default if value is None else value
-    if value is None and ensure is True:
-        return sys.exit("MISSING arg {}".format(key))
+def parse_bool(v):
+    if type(v) == str:
+        return v.lower() in ("yes", "true", "1")
     else:
-        return transform(value)
+        return bool(v)
+
+

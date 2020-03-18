@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from krogon.config import Config
 from python_mock import PyMock
 from typing import List
+from krogon.yaml import load_all
 
 
 class MockFileSystem:
@@ -48,7 +49,9 @@ class MockFileSystem:
 
     def mock_with_temp_file(self):
         def _t(x):
-            return x['kwargs']['runner']('/temp/'+x['kwargs']['filename'])
+            filepath = '/temp/'+x['kwargs']['filename']
+            self.file_system.write(filepath, x['kwargs']['contents'])
+            return x['kwargs']['runner'](filepath)
 
         PyMock.mock(self.file_system.with_temp_file, call_fake=_t)
 
@@ -72,3 +75,18 @@ class MockFileSystem:
 
     def get_mock(self):
         return self.file_system
+
+
+def find_write_template_calls(fs: MockFileSystem, cluster: str = None) -> List[dict]:
+    calls = PyMock.calls(fs.file_system.write)
+    matches = []
+    for call in calls:
+        if cluster is not None and call['args'][0] == '/var/app-root/output/'+cluster+'/k8s.yaml':
+            matches = matches + load_all(call['args'][1])
+        if call['args'][0] == '/temp/template.yaml':
+            matches = matches + load_all(call['args'][1])
+        if call['args'][0] == '/var/app-root/output/k8s.yaml':
+            matches = matches + load_all(call['args'][1])
+    if len(matches) > 0:
+        return matches
+    raise Exception('fs.write not used to write template')

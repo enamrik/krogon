@@ -1,8 +1,7 @@
-from krogon.exec_context import ExecContext
+from krogon.k8s.template_context import TemplateContext
 from krogon.nullable import nlist, nmap
 import krogon.either as E
 import krogon.maybe as M
-import krogon.k8s.kubectl as k
 
 
 def gateway_mapping(name: str, host: str, service: str, port: int = None):
@@ -17,17 +16,17 @@ class K8sGatewayTemplate:
         self.port: M.Maybe[int] = M.from_value(port)
         self.gateway_name = 'cluster-gateway'
 
-    def _is_ambassador(self, context: ExecContext):
+    def _is_ambassador(self, context: TemplateContext):
         cluster_name = context.get_state('cluster_name')
-        return k.kubectl(context.kubectl, cluster_name, 'get mappings') \
+        return context.kubectl.cmd('get mappings', cluster_name) \
                | E.from_either | (dict(if_success=lambda _: True, if_failure=lambda _: False))
 
-    def _is_istio(self, context: ExecContext):
+    def _is_istio(self, context: TemplateContext):
         cluster_name = context.get_state('cluster_name')
-        return k.kubectl(context.kubectl, cluster_name, 'get virtualservices') \
+        return context.kubectl.cmd('get virtualservices', cluster_name) \
                | E.from_either | (dict(if_success=lambda _: True, if_failure=lambda _: False))
 
-    def map_context(self, context: ExecContext) -> ExecContext:
+    def map_context(self, context: TemplateContext) -> TemplateContext:
         if self._is_ambassador(context):
             context.append_templates([{
                 'apiVersion': 'getambassador.io/v1',

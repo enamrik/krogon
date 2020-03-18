@@ -9,7 +9,7 @@ also has plugins that encode repeatable patterns in services that run on K8s.
 
 ## Plugins
 
-* [Krogon-GCD](https://github.com/enamrik/krogon-gocd)
+* [Krogon-GoCD](https://github.com/enamrik/krogon-gocd)
 * [Krogon-Istio](https://github.com/enamrik/krogon-istio)
 
 ## Installation
@@ -53,22 +53,19 @@ a template generator. Templates are put in a folder called `output` in the curre
 e.g.
 
 ```python
-from krogon import krogon
-from krogon.steps.k8s import gen_template, micro_service
+from krogon import gen_template
 
-krogon(
-    run_steps=[
-        gen_template(
-            templates = [
-            ...
-        ])
-    ]
-)
+gen_template(
+    templates = [
+    ...
+])
 ```
 
 Args:
 
 * `templates`: An array of templates for which to generate yaml files.
+
+The template will be written to `<PWD>/output/k8s.yaml`.
 
 ### Template Runner Step
 
@@ -79,44 +76,57 @@ a template runner that executes templates in one or more clusters.
 e.g.
 ```python
 import os
-from krogon import krogon
-from krogon import config
-from krogon.steps.k8s import run_in_cluster, micro_service
+from krogon import run_in_cluster, gke_conn
 
-krogon(
-    run_steps=[
-        run_in_cluster(
-            named='prod-us',
-            templates = [
-                ...
-        ])
-    ],
-    for_config=config(
-        project_id=os.environ['PROJECT_ID'],
-        service_account_b64=os.environ['SERVICE_ACCOUNT_B64']
-    )
+run_in_cluster(
+    conn=gke_conn(cluster_regex='prod-us.*', 
+                  project_id=os.environ['PROJECT_ID'],
+                  service_account_b64=os.environ['SERVICE_ACCOUNT_B64']),
+    templates = [
+        ...
+    ]
 )
 ```
 Args:
 
-* `named`: A tag used to filter which cluster(s) to deploy to. In the example, any cluster
-which name contains the text 'prod-us', e.g. 'prod-us-east' or 'prod-us-west', will be deployed to.
-
 * `templates`: An array of templates for which to generate yaml files.
 
-* `for_config:project_id`: The project_id of the project where your clusters live.
+* `gke_conn:cluster_regex`: A tag used to filter which cluster(s) to deploy to. In the example, any cluster
+which name contains the text 'prod-us', e.g. 'prod-us-east' or 'prod-us-west', will be deployed to.
+Can also be set via environment variable: `KG_CLUSTER_REGEX=prod-.*`.
+
+* `gke_conn:project_id`: The project_id of the project where your clusters live.
 Can also be set via environment variable: `KG_PROJECT_ID=prod-project`.
 
-* `for_config:service_account_b64`: A base 64 string of the service account key file. Can be produced by `$(base64 ~/Documents/prod-access.json)`.
+* `gke_conn:service_account_b64`: A base 64 string of the service account key file. Can be produced by `$(base64 ~/Documents/prod-access.json)`.
 Can also be set via environment variable: `KG_SERVICE_ACCOUNT_B64=$(base64 <path-to-file>)`.
 
-* `for_config:output_template`: If True, wil generate each cluster's yaml file in the output folder. Default is false. 
-Can also be set via environment variable: `KG_TEMPLATE=true`.
+Optional Env Args:
 
-* `for_config:delete`: If True, will delete the resources created.
-Can also be set via environment variable: `KG_DELETE=true`.
+* `KG_TEMPLATE`: If True, wil generate each cluster's yaml file in the output folder. Default is false. 
 
-If you specify all `for_config` arguments via environment variables, you can leave out the `for_config` argument entirely.
+* `KG_DELETE`: If True, will delete the resources instead of created.
+
+The `conn` can also be dynamically discovered:
+
+e.g.
+```python
+from krogon import run_in_cluster, discover_conn
+
+run_in_cluster(
+    conn=discover_conn(),
+    templates = [
+        ...
+    ]
+)
+```
+
+If `KG_SERVICE_ACCOUNT_B64` is set, `gke_conn` will be created.
+If no `conn`  can be determined, the `local_kubectl_conn` is assumed.
+`local_kubectl_conn` used the system `kubectl`. Krogon will thus deploy to whatever context
+the `kubectl` context is pointing to. `discover_conn` is the default if `conn` is left out. 
+
+When using `discover_conn`, `conn` types can only be configured by their environment variable options.
 
 
 ### Template types
@@ -127,19 +137,15 @@ a template for generating resources that make up a service.
 
 e.g.
 ```python
-from krogon import krogon
-from krogon.steps.k8s import gen_template, micro_service
+from krogon import gen_template
+from krogon.k8s import micro_service
 
-krogon(
-    run_steps=[
-        gen_template([
-            micro_service(
-                name='test-app',
-                image='gcr.io/prod-project/test-app:1.0.0',
-                app_port=3000)
-        ])
-    ]
-)
+gen_template([
+    micro_service(
+        name='test-app',
+        image='gcr.io/prod-project/test-app:1.0.0',
+        app_port=3000)
+])
 ```
 
 Args:

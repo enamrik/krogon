@@ -1,8 +1,8 @@
 from typing import List, Optional, Callable
 
-from krogon.exec_context import ExecContext
+from krogon.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
+from krogon.k8s.template_context import TemplateContext
 from krogon.nullable import nmap
-from krogon.steps.k8s.k8s_env_vars import set_environment_variable, add_environment_secret
 import krogon.maybe as M
 import krogon.nullable as N
 
@@ -68,12 +68,14 @@ class K8sContainer:
         self.environment_vars = add_environment_secret(self.environment_vars, secret_name, data)
         return self
 
-    def get_template(self, context: ExecContext):
-        if context.get_state('cluster_name') is not None:
-            self.environment_vars = set_environment_variable(self.environment_vars, 'CLUSTER', context.get_state('cluster_name'))
+    def get_template(self, context: TemplateContext):
+        cluster_name = context.get_state('cluster_name')
+        if cluster_name is not None:
+            self.environment_vars = set_environment_variable(self.environment_vars, 'CLUSTER', cluster_name)
 
         for (name, action) in self.environment_vars_from_context:
-            self.environment_vars = set_environment_variable(self.environment_vars, name, action(lambda key: context.get_state(key)))
+            self.environment_vars = set_environment_variable(self.environment_vars, name,
+                                                             action(lambda key: context.get_state(key)))
 
         return nmap({
             'name': app_name(self.name),
